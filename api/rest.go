@@ -7,6 +7,8 @@ import (
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/go-cmd/cmd"
 	"net/http"
+	"os"
+	"strings"
 )
 
 type Proc struct {
@@ -14,23 +16,10 @@ type Proc struct {
 	Cmd  *cmd.Cmd
 }
 
-func checkRole(role string, r *http.Request) bool {
-	if rCtx, ok := middleware.ContextFromRequest(r); ok {
-		if rCtx.IDClaims != nil {
-			for _, r := range rCtx.IDClaims.RealmAccess.Roles {
-				if r == role {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 func (a *App) getData(w http.ResponseWriter, r *http.Request) {
 
 	// Check role
-	authRoot := checkRole("auth_root", r)
+	authRoot := middleware.CheckRole("auth_root", r)
 	if !authRoot {
 		e := errors.New("bad permission")
 		httputil.NewUnauthorizedError(e).Abort(w, r)
@@ -60,8 +49,9 @@ func (a *App) statData(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) execData(w http.ResponseWriter, r *http.Request) {
 
-	// Start a long-running process, capture stdout and stderr
-	a.Cmd = cmd.NewCmd("ffmpeg", "-y", "-f", "lavfi", "-i", "testsrc", "-pix_fmt", "yuv420p", "-f", "mp4", "/dev/null")
+	cmdArgs := os.Getenv("ARGS")
+	args := strings.Split(cmdArgs, " ")
+	a.Cmd = cmd.NewCmd("ffmpeg", args...)
 
 	a.Cmd.Start()
 

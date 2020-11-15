@@ -105,6 +105,19 @@ func parseToken(r *http.Request) string {
 	return ""
 }
 
+func CheckRole(role string, r *http.Request) bool {
+	if rCtx, ok := ContextFromRequest(r); ok {
+		if rCtx.IDClaims != nil {
+			for _, r := range rCtx.IDClaims.RealmAccess.Roles {
+				if r == role {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func isAllowedIP(ipAddr string) (bool, error) {
 	ip := net.ParseIP(strings.TrimSpace(ipAddr))
 	if ip == nil {
