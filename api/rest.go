@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Bnei-Baruch/exec-api/pkg/httputil"
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/go-cmd/cmd"
@@ -29,7 +28,11 @@ func (a *App) getData(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w)
 }
 
-func (a *App) stopData(w http.ResponseWriter, r *http.Request) {
+func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
+
+	if a.Cmd == nil {
+		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to stop")
+	}
 
 	err := a.Cmd.Stop()
 	if err != nil {
@@ -40,14 +43,22 @@ func (a *App) stopData(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w)
 }
 
-func (a *App) statData(w http.ResponseWriter, r *http.Request) {
+func (a *App) statExec(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println(a.Cmd.Status())
+	if a.Cmd == nil {
+		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
+	}
 
-	httputil.RespondSuccess(w)
+	status := a.Cmd.Status()
+	httputil.RespondWithJSON(w, http.StatusOK, status)
+
 }
 
-func (a *App) execData(w http.ResponseWriter, r *http.Request) {
+func (a *App) runExec(w http.ResponseWriter, r *http.Request) {
+
+	if a.Cmd != nil {
+		httputil.RespondWithError(w, http.StatusBadRequest, "Already executed")
+	}
 
 	cmdArgs := os.Getenv("ARGS")
 	args := strings.Split(cmdArgs, " ")
