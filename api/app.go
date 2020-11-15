@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/go-cmd/cmd"
 	"net/http"
 
 	"github.com/coreos/go-oidc"
@@ -16,6 +17,7 @@ type App struct {
 	Router        *mux.Router
 	Handler       http.Handler
 	tokenVerifier *oidc.IDTokenVerifier
+	Cmd           *cmd.Cmd
 }
 
 func (a *App) Initialize(accountsUrl string, skipAuth bool) {
@@ -81,4 +83,7 @@ func (a *App) Run(listenAddr string) {
 
 func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/data", a.getData).Methods("GET")
+	a.Router.HandleFunc("/exec", a.execData).Methods("GET")
+	a.Router.HandleFunc("/stop", a.stopData).Methods("GET")
+	a.Router.HandleFunc("/stat", a.statData).Methods("GET")
 }
