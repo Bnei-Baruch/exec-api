@@ -85,5 +85,7 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/test", a.getData).Methods("GET")
 	a.Router.HandleFunc("/exec", a.runExec).Methods("GET")
 	a.Router.HandleFunc("/stop", a.stopExec).Methods("GET")
-	a.Router.HandleFunc("/stat", a.statExec).Methods("GET")
+	a.Router.HandleFunc("/status", a.statExec).Methods("GET")
+	a.Router.HandleFunc("/statcmd", a.statCmd).Methods("GET")
+	a.Router.HandleFunc("/statos", a.statOs).Methods("GET")
 }

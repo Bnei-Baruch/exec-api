@@ -10,9 +10,8 @@ import (
 	"strings"
 )
 
-type Proc struct {
-	Stat *cmd.Status
-	Cmd  *cmd.Cmd
+type Status struct {
+	LastLog string
 }
 
 func (a *App) getData(w http.ResponseWriter, r *http.Request) {
@@ -28,10 +27,34 @@ func (a *App) getData(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w)
 }
 
+func (a *App) runExec(w http.ResponseWriter, r *http.Request) {
+
+	if a.Cmd != nil {
+		status := a.Cmd.Status()
+		if !status.Complete {
+			httputil.RespondWithError(w, http.StatusBadRequest, "Already executed")
+			return
+		}
+	}
+
+	cmdArgs := os.Getenv("ARGS")
+	args := strings.Split(cmdArgs, "!")
+	a.Cmd = cmd.NewCmd("ffmpeg", args...)
+	a.Cmd.Start()
+	status := a.Cmd.Status()
+	if status.Exit == 1 {
+		httputil.RespondWithError(w, http.StatusInternalServerError, "Run Exec Failed")
+		return
+	}
+
+	httputil.RespondSuccess(w)
+}
+
 func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
 
 	if a.Cmd == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to stop")
+		return
 	}
 
 	err := a.Cmd.Stop()
@@ -47,24 +70,37 @@ func (a *App) statExec(w http.ResponseWriter, r *http.Request) {
 
 	if a.Cmd == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
+		return
 	}
 
 	status := a.Cmd.Status()
+	st := &Status{}
+	n := len(status.Stderr)
+	last := strings.Split(status.Stderr[n-1], "\r")
+	st.LastLog = last[len(last)-1]
+
+	httputil.RespondWithJSON(w, http.StatusOK, st)
+
+}
+
+func (a *App) statCmd(w http.ResponseWriter, r *http.Request) {
+
+	if a.Cmd == nil {
+		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
+		return
+	}
+
+	status := a.Cmd.Status()
+
 	httputil.RespondWithJSON(w, http.StatusOK, status)
 
 }
 
-func (a *App) runExec(w http.ResponseWriter, r *http.Request) {
+func (a *App) statOs(w http.ResponseWriter, r *http.Request) {
 
-	if a.Cmd != nil {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Already executed")
-	}
+	temp := cmd.NewCmd("sensors")
+	tempStatus := <-temp.Start()
 
-	cmdArgs := os.Getenv("ARGS")
-	args := strings.Split(cmdArgs, " ")
-	a.Cmd = cmd.NewCmd("ffmpeg", args...)
+	httputil.RespondWithJSON(w, http.StatusOK, tempStatus.Stdout)
 
-	a.Cmd.Start()
-
-	httputil.RespondSuccess(w)
 }
