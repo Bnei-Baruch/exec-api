@@ -88,4 +88,6 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/status", a.statExec).Methods("GET")
 	a.Router.HandleFunc("/statcmd", a.statCmd).Methods("GET")
 	a.Router.HandleFunc("/statos", a.statOs).Methods("GET")
+	a.Router.HandleFunc("/progress", a.prgsTail).Methods("GET")
+	a.Router.HandleFunc("/alive", a.isAlive).Methods("GET")
 }
