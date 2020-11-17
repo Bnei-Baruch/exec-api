@@ -7,6 +7,16 @@ import (
 	"syscall"
 )
 
+type Config struct {
+	Services []Service
+}
+
+type Service struct {
+	ID   string
+	Name string
+	Args []string
+}
+
 func logTail(fname string) {
 	file, err := os.Open(fname)
 	if err != nil {
@@ -52,13 +62,18 @@ func PidExists(pid int) (bool, error) {
 	return false, err
 }
 
-func getConf() (map[string]interface{}, error) {
+func getConf() (*Config, error) {
 	file, err := os.Open(os.Getenv("WORK_DIR") + "conf.json")
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
-	var config map[string]interface{}
-	json.NewDecoder(file).Decode(&config)
-	return config, nil
+	decoder := json.NewDecoder(file)
+	Config := Config{}
+	err = decoder.Decode(&Config)
+	fmt.Println(Config)
+	if err != nil {
+		return nil, err
+	}
+	return &Config, nil
 }

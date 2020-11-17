@@ -54,26 +54,23 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	config, err := getConf()
+	c, err := getConf()
 	if err != nil {
-		httputil.NewInternalError(err).Abort(w, r)
+		httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
 		return
 	}
 
-	var keys []string
+	var service string
 	var args []string
-	for k, v := range config {
-		if id == k {
-			keys = append(keys, k)
-			data := v.([]interface{})
-			for _, s := range data {
-				v := s.(string)
-				args = append(args, v)
-			}
+	for _, v := range c.Services {
+		if v.ID == id {
+			service = v.Name
+			args = v.Args
+			break
 		}
 	}
 
-	if len(keys) == 0 {
+	if len(args) == 0 {
 		httputil.RespondWithError(w, http.StatusBadRequest, "Id not found")
 		return
 	}
@@ -91,12 +88,13 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ffpg := []string{"-progress", os.Getenv("WORK_DIR") + "stat_" + id + ".log"}
-	args = append(ffpg, args...)
+	//ffpg := []string{"-progress", os.Getenv("WORK_DIR") + "stat_" + id + ".log"}
+	//args = append(ffpg, args...)
 	if a.Cmd == nil {
 		a.Cmd = make(map[string]*cmd.Cmd)
 	}
-	a.Cmd[id] = cmd.NewCmd("ffmpeg", args...)
+	//a.Cmd[id] = cmd.NewCmd("ffmpeg", args...)
+	a.Cmd[id] = cmd.NewCmd(service, args...)
 	a.Cmd[id].Start()
 	status := a.Cmd[id].Status()
 	if status.Exit == 1 {
