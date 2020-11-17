@@ -1,0 +1,12 @@
+{"services": [
+{
+"id": "enc1",
+"name": "ffmpeg",
+"args":["-progress","stat_enc1","-hide_banner", "-y", "-f", "lavfi", "-i", "testsrc", "-pix_fmt", "yuv420p", "-f", "mp4", "/dev/null"]
+},
+{
+"id": "enc2",
+"name": "ffmpeg",
+"args":["-progress","stat_enc2","-hide_banner", "-y", "-f", "lavfi", "-i", "testsrc", "-pix_fmt", "yuv420p", "-f", "mp4", "/dev/null"]
+}
+]}
