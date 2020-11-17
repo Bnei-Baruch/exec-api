@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Bnei-Baruch/exec-api/pkg/httputil"
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/go-cmd/cmd"
@@ -10,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"syscall"
 )
 
 type Status struct {
@@ -56,6 +54,30 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
+	config, err := getConf()
+	if err != nil {
+		httputil.NewInternalError(err).Abort(w, r)
+		return
+	}
+
+	var keys []string
+	var args []string
+	for k, v := range config {
+		if id == k {
+			keys = append(keys, k)
+			data := v.([]interface{})
+			for _, s := range data {
+				v := s.(string)
+				args = append(args, v)
+			}
+		}
+	}
+
+	if len(keys) == 0 {
+		httputil.RespondWithError(w, http.StatusBadRequest, "Id not found")
+		return
+	}
+
 	if a.Cmd[id] != nil {
 		status := a.Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
@@ -69,9 +91,7 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cmdArgs := os.Getenv("ARGS")
-	args := strings.Split(cmdArgs, "!")
-	ffpg := []string{"-progress", os.Getenv("PROGRESS") + "stat_" + id + ".log"}
+	ffpg := []string{"-progress", os.Getenv("WORK_DIR") + "stat_" + id + ".log"}
 	args = append(ffpg, args...)
 	if a.Cmd == nil {
 		a.Cmd = make(map[string]*cmd.Cmd)
@@ -156,60 +176,15 @@ func (a *App) prgsTail(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	progress := cmd.NewCmd("tail", "-n", "12", os.Getenv("PROGRESS")+"stat_"+id+".log")
+	progress := cmd.NewCmd("tail", "-n", "12", os.Getenv("WORK_DIR")+"stat_"+id+".log")
 	p := <-progress.Start()
 
-	json := make(map[string]string)
+	ffjson := make(map[string]string)
 
 	for _, line := range p.Stdout {
 		args := strings.Split(line, "=")
-		json[args[0]] = args[1]
+		ffjson[args[0]] = args[1]
 	}
 
-	httputil.RespondWithJSON(w, http.StatusOK, json)
-}
-
-func logTail(fname string) {
-	file, err := os.Open(fname)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	buf := make([]byte, 215)
-	stat, err := os.Stat(fname)
-	start := stat.Size() - 215
-	_, err = file.ReadAt(buf, start)
-	if err == nil {
-		fmt.Printf("%s\n", buf)
-	}
-
-}
-
-func PidExists(pid int) (bool, error) {
-	if pid <= 0 {
-		return false, fmt.Errorf("invalid pid %v", pid)
-	}
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		return false, err
-	}
-	err = proc.Signal(syscall.Signal(0))
-	if err == nil {
-		return true, nil
-	}
-	if err.Error() == "os: process already finished" {
-		return false, nil
-	}
-	errno, ok := err.(syscall.Errno)
-	if !ok {
-		return false, err
-	}
-	switch errno {
-	case syscall.ESRCH:
-		return false, nil
-	case syscall.EPERM:
-		return true, nil
-	}
-	return false, err
+	httputil.RespondWithJSON(w, http.StatusOK, ffjson)
 }
