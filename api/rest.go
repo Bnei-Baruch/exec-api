@@ -6,6 +6,7 @@ import (
 	"github.com/Bnei-Baruch/exec-api/pkg/httputil"
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/go-cmd/cmd"
+	"github.com/gorilla/mux"
 	"net/http"
 	"os"
 	"strings"
@@ -30,8 +31,12 @@ func (a *App) getData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {
-	if a.Cmd != nil {
-		status := a.Cmd.Status()
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if a.Cmd[id] != nil {
+		status := a.Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			httputil.NewInternalError(err).Abort(w, r)
@@ -46,10 +51,13 @@ func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondWithError(w, http.StatusNotFound, "died")
 }
 
-func (a *App) runExec(w http.ResponseWriter, r *http.Request) {
+func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 
-	if a.Cmd != nil {
-		status := a.Cmd.Status()
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if a.Cmd[id] != nil {
+		status := a.Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			httputil.NewInternalError(err).Abort(w, r)
@@ -63,9 +71,14 @@ func (a *App) runExec(w http.ResponseWriter, r *http.Request) {
 
 	cmdArgs := os.Getenv("ARGS")
 	args := strings.Split(cmdArgs, "!")
-	a.Cmd = cmd.NewCmd("ffmpeg", args...)
-	a.Cmd.Start()
-	status := a.Cmd.Status()
+	ffpg := []string{"-progress", os.Getenv("PROGRESS") + "stat_" + id + ".log"}
+	args = append(ffpg, args...)
+	if a.Cmd == nil {
+		a.Cmd = make(map[string]*cmd.Cmd)
+	}
+	a.Cmd[id] = cmd.NewCmd("ffmpeg", args...)
+	a.Cmd[id].Start()
+	status := a.Cmd[id].Status()
 	if status.Exit == 1 {
 		httputil.RespondWithError(w, http.StatusInternalServerError, "Run Exec Failed")
 		return
@@ -76,12 +89,15 @@ func (a *App) runExec(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
 
-	if a.Cmd == nil {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if a.Cmd[id] == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to stop")
 		return
 	}
 
-	err := a.Cmd.Stop()
+	err := a.Cmd[id].Stop()
 	if err != nil {
 		httputil.NewUnauthorizedError(err).Abort(w, r)
 		return
@@ -90,14 +106,17 @@ func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w)
 }
 
-func (a *App) statExec(w http.ResponseWriter, r *http.Request) {
+func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 
-	if a.Cmd == nil {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if a.Cmd[id] == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
 		return
 	}
 
-	status := a.Cmd.Status()
+	status := a.Cmd[id].Status()
 	st := &Status{}
 	n := len(status.Stderr)
 	last := strings.Split(status.Stderr[n-1], "\r")
@@ -107,20 +126,23 @@ func (a *App) statExec(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (a *App) statCmd(w http.ResponseWriter, r *http.Request) {
+func (a *App) cmdStat(w http.ResponseWriter, r *http.Request) {
 
-	if a.Cmd == nil {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if a.Cmd[id] == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
 		return
 	}
 
-	status := a.Cmd.Status()
+	status := a.Cmd[id].Status()
 
 	httputil.RespondWithJSON(w, http.StatusOK, status)
 
 }
 
-func (a *App) statOs(w http.ResponseWriter, r *http.Request) {
+func (a *App) sysStat(w http.ResponseWriter, r *http.Request) {
 
 	temp := cmd.NewCmd("sensors")
 	tempStatus := <-temp.Start()
@@ -131,7 +153,10 @@ func (a *App) statOs(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) prgsTail(w http.ResponseWriter, r *http.Request) {
 
-	progress := cmd.NewCmd("tail", "-n", "12", "stat.log")
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	progress := cmd.NewCmd("tail", "-n", "12", os.Getenv("PROGRESS")+"stat_"+id+".log")
 	p := <-progress.Start()
 
 	json := make(map[string]string)

@@ -17,7 +17,7 @@ type App struct {
 	Router        *mux.Router
 	Handler       http.Handler
 	tokenVerifier *oidc.IDTokenVerifier
-	Cmd           *cmd.Cmd
+	Cmd           map[string]*cmd.Cmd
 }
 
 func (a *App) Initialize(accountsUrl string, skipAuth bool) {
@@ -83,11 +83,11 @@ func (a *App) Run(listenAddr string) {
 
 func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/test", a.getData).Methods("GET")
-	a.Router.HandleFunc("/exec", a.runExec).Methods("GET")
-	a.Router.HandleFunc("/stop", a.stopExec).Methods("GET")
-	a.Router.HandleFunc("/status", a.statExec).Methods("GET")
-	a.Router.HandleFunc("/statcmd", a.statCmd).Methods("GET")
-	a.Router.HandleFunc("/statos", a.statOs).Methods("GET")
-	a.Router.HandleFunc("/progress", a.prgsTail).Methods("GET")
-	a.Router.HandleFunc("/alive", a.isAlive).Methods("GET")
+	a.Router.HandleFunc("/sysstat", a.sysStat).Methods("GET")
+	a.Router.HandleFunc("/start/{id}", a.startExec).Methods("GET")
+	a.Router.HandleFunc("/stop/{id}", a.stopExec).Methods("GET")
+	a.Router.HandleFunc("/status/{id}", a.execStatus).Methods("GET")
+	a.Router.HandleFunc("/cmdstat/{id}", a.cmdStat).Methods("GET")
+	a.Router.HandleFunc("/progress/{id}", a.prgsTail).Methods("GET")
+	a.Router.HandleFunc("/alive/{id}", a.isAlive).Methods("GET")
 }
