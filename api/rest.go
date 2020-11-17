@@ -7,7 +7,6 @@ import (
 	"github.com/go-cmd/cmd"
 	"github.com/gorilla/mux"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -88,12 +87,10 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	//ffpg := []string{"-progress", os.Getenv("WORK_DIR") + "stat_" + id + ".log"}
-	//args = append(ffpg, args...)
 	if a.Cmd == nil {
 		a.Cmd = make(map[string]*cmd.Cmd)
 	}
-	//a.Cmd[id] = cmd.NewCmd("ffmpeg", args...)
+
 	a.Cmd[id] = cmd.NewCmd(service, args...)
 	a.Cmd[id].Start()
 	status := a.Cmd[id].Status()
@@ -174,7 +171,7 @@ func (a *App) prgsTail(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	progress := cmd.NewCmd("tail", "-n", "12", os.Getenv("WORK_DIR")+"stat_"+id+".log")
+	progress := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
 	p := <-progress.Start()
 
 	ffjson := make(map[string]string)

@@ -63,7 +63,7 @@ func PidExists(pid int) (bool, error) {
 }
 
 func getConf() (*Config, error) {
-	file, err := os.Open(os.Getenv("WORK_DIR") + "conf.json")
+	file, err := os.Open("conf.json")
 	if err != nil {
 		return nil, err
 	}
