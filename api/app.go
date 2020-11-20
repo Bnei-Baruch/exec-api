@@ -84,6 +84,7 @@ func (a *App) Run(listenAddr string) {
 func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/test", a.getData).Methods("GET")
 	a.Router.HandleFunc("/sysstat", a.sysStat).Methods("GET")
+	a.Router.HandleFunc("/status", a.execStatus).Methods("GET")
 	a.Router.HandleFunc("/start/{id}", a.startExec).Methods("GET")
 	a.Router.HandleFunc("/stop/{id}", a.stopExec).Methods("GET")
 	a.Router.HandleFunc("/status/{id}", a.execStatus).Methods("GET")

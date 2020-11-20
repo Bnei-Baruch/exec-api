@@ -11,10 +11,6 @@ import (
 	"strings"
 )
 
-type Status struct {
-	LastLog string
-}
-
 func (a *App) getData(w http.ResponseWriter, r *http.Request) {
 
 	// Check role
@@ -158,13 +154,40 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 	p := <-progress.Start()
 
 	report := strings.Split(p.Stdout[0], "\r")
+	c, _ := getConf()
 
-	st := &Status{}
+	st := make(map[string]interface{})
+	for _, i := range c.Services {
+		if id == i.ID {
+			st["name"] = i.Name
+			st["id"] = i.ID
+			//st["args"] = i.Args
+		}
+	}
+
 	n := len(report)
-	st.LastLog = report[n-1]
+	st["log"] = report[n-1]
+
+	status := a.Cmd[id].Status()
+	isruning, err := PidExists(status.PID)
+	if err != nil {
+		httputil.NewInternalError(err).Abort(w, r)
+		return
+	}
+	st["alive"] = isruning
+
+	//prog := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
+	//pr := <-prog.Start()
+	//for _, line := range pr.Stdout {
+	//	args := strings.Split(line, "=")
+	//	st[args[0]] = args[1]
+	//}
+
+	st["runtime"] = status.Runtime
+	st["start"] = status.StartTs
+	st["stop"] = status.StopTs
 
 	httputil.RespondWithJSON(w, http.StatusOK, st)
-
 }
 
 func (a *App) sysStat(w http.ResponseWriter, r *http.Request) {
