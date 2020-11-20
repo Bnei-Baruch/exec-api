@@ -7,6 +7,7 @@ import (
 	"github.com/go-cmd/cmd"
 	"github.com/gorilla/mux"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -91,7 +92,13 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 		a.Cmd = make(map[string]*cmd.Cmd)
 	}
 
-	a.Cmd[id] = cmd.NewCmd(service, args...)
+	cmdOptions := cmd.Options{
+		Buffered:  false,
+		Streaming: false,
+	}
+
+	os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
+	a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
 	a.Cmd[id].Start()
 	status := a.Cmd[id].Status()
 	if status.Exit == 1 {
@@ -121,26 +128,6 @@ func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w)
 }
 
-func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	id := vars["id"]
-
-	if a.Cmd[id] == nil {
-		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
-		return
-	}
-
-	status := a.Cmd[id].Status()
-	st := &Status{}
-	n := len(status.Stderr)
-	last := strings.Split(status.Stderr[n-1], "\r")
-	st.LastLog = last[len(last)-1]
-
-	httputil.RespondWithJSON(w, http.StatusOK, st)
-
-}
-
 func (a *App) cmdStat(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
@@ -157,6 +144,29 @@ func (a *App) cmdStat(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	if a.Cmd[id] == nil {
+		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
+		return
+	}
+
+	progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
+	p := <-progress.Start()
+
+	report := strings.Split(p.Stdout[0], "\r")
+
+	st := &Status{}
+	n := len(report)
+	st.LastLog = report[n-1]
+
+	httputil.RespondWithJSON(w, http.StatusOK, st)
+
+}
+
 func (a *App) sysStat(w http.ResponseWriter, r *http.Request) {
 
 	temp := cmd.NewCmd("sensors")
@@ -166,7 +176,7 @@ func (a *App) sysStat(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (a *App) prgsTail(w http.ResponseWriter, r *http.Request) {
+func (a *App) getProgress(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -182,4 +192,16 @@ func (a *App) prgsTail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.RespondWithJSON(w, http.StatusOK, ffjson)
+}
+
+func (a *App) getReport(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	progress := cmd.NewCmd("cat", "report_"+id+".log")
+	p := <-progress.Start()
+
+	httputil.RespondWithJSON(w, http.StatusOK, p)
+
 }
