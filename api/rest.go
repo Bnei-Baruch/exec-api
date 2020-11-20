@@ -140,7 +140,7 @@ func (a *App) cmdStat(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
+func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -188,6 +188,59 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 	st["stop"] = status.StopTs
 
 	httputil.RespondWithJSON(w, http.StatusOK, st)
+}
+
+func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
+
+	var id string
+	var services []map[string]interface{}
+	c, _ := getConf()
+
+	for _, i := range c.Services {
+		st := make(map[string]interface{})
+		id = i.ID
+		st["name"] = i.Name
+		st["id"] = i.ID
+		//st["args"] = i.Args
+
+		if a.Cmd[id] == nil {
+			st["runtime"] = 0
+			st["start"] = 0
+			st["stop"] = 0
+			st["alive"] = false
+		} else {
+			progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
+			p := <-progress.Start()
+
+			report := strings.Split(p.Stdout[0], "\r")
+
+			n := len(report)
+			st["log"] = report[n-1]
+
+			status := a.Cmd[id].Status()
+			isruning, err := PidExists(status.PID)
+			if err != nil {
+				httputil.NewInternalError(err).Abort(w, r)
+				return
+			}
+			st["alive"] = isruning
+
+			//prog := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
+			//pr := <-prog.Start()
+			//for _, line := range pr.Stdout {
+			//	args := strings.Split(line, "=")
+			//	st[args[0]] = args[1]
+			//}
+
+			st["runtime"] = status.Runtime
+			st["start"] = status.StartTs
+			st["stop"] = status.StopTs
+		}
+
+		services = append(services, st)
+	}
+
+	httputil.RespondWithJSON(w, http.StatusOK, services)
 }
 
 func (a *App) sysStat(w http.ResponseWriter, r *http.Request) {
