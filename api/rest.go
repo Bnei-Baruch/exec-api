@@ -94,7 +94,13 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 	}
 
 	os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-	a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+
+	if service == "ffmpeg" {
+		a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+	} else {
+		a.Cmd[id] = cmd.NewCmd(service, args...)
+	}
+
 	a.Cmd[id].Start()
 	status := a.Cmd[id].Status()
 	if status.Exit == 1 {
@@ -142,6 +148,7 @@ func (a *App) cmdStat(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 
+	st := make(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -150,13 +157,8 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
-	p := <-progress.Start()
-
-	report := strings.Split(p.Stdout[0], "\r")
 	c, _ := getConf()
 
-	st := make(map[string]interface{})
 	for _, i := range c.Services {
 		if id == i.ID {
 			st["name"] = i.Name
@@ -165,8 +167,13 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	n := len(report)
-	st["log"] = report[n-1]
+	if st["name"] == "ffmpeg" {
+		progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
+		p := <-progress.Start()
+		report := strings.Split(p.Stdout[0], "\r")
+		n := len(report)
+		st["log"] = report[n-1]
+	}
 
 	status := a.Cmd[id].Status()
 	isruning, err := PidExists(status.PID)
@@ -209,13 +216,13 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 			st["stop"] = 0
 			st["alive"] = false
 		} else {
-			progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
-			p := <-progress.Start()
-
-			report := strings.Split(p.Stdout[0], "\r")
-
-			n := len(report)
-			st["log"] = report[n-1]
+			if st["name"] == "ffmpeg" {
+				progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
+				p := <-progress.Start()
+				report := strings.Split(p.Stdout[0], "\r")
+				n := len(report)
+				st["log"] = report[n-1]
+			}
 
 			status := a.Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
