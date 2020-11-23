@@ -47,6 +47,85 @@ func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 
+	var id string
+	c, err := getConf()
+	if err != nil {
+		httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+		return
+	}
+
+	var service string
+	var args []string
+	for _, v := range c.Services {
+		id = v.ID
+		service = v.Name
+		args = v.Args
+		if len(args) == 0 {
+			continue
+		}
+
+		if a.Cmd[id] != nil {
+			status := a.Cmd[id].Status()
+			isruning, err := PidExists(status.PID)
+			if err != nil {
+				continue
+			}
+			if isruning {
+				continue
+			}
+		}
+
+		if a.Cmd == nil {
+			a.Cmd = make(map[string]*cmd.Cmd)
+		}
+
+		if service == "ffmpeg" {
+			cmdOptions := cmd.Options{Buffered: false, Streaming: false}
+			os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
+			a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+		} else {
+			a.Cmd[id] = cmd.NewCmd(service, args...)
+		}
+
+		a.Cmd[id].Start()
+		status := a.Cmd[id].Status()
+		if status.Exit == 1 {
+			continue
+		}
+	}
+
+	// TODO: return exec report
+	httputil.RespondSuccess(w)
+}
+
+func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
+
+	c, err := getConf()
+	if err != nil {
+		httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+		return
+	}
+
+	var id string
+	for _, v := range c.Services {
+		id = v.ID
+
+		if a.Cmd[id] == nil {
+			continue
+		}
+
+		err := a.Cmd[id].Stop()
+		if err != nil {
+			continue
+		}
+	}
+
+	// TODO: return report
+	httputil.RespondSuccess(w)
+}
+
+func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
+
 	vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -88,14 +167,9 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 		a.Cmd = make(map[string]*cmd.Cmd)
 	}
 
-	cmdOptions := cmd.Options{
-		Buffered:  false,
-		Streaming: false,
-	}
-
-	os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-
 	if service == "ffmpeg" {
+		cmdOptions := cmd.Options{Buffered: false, Streaming: false}
+		os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
 		a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
 	} else {
 		a.Cmd[id] = cmd.NewCmd(service, args...)
@@ -111,7 +185,7 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w)
 }
 
-func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
+func (a *App) stopExecByID(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	id := vars["id"]
