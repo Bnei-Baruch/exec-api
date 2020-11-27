@@ -3,9 +3,18 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"syscall"
 )
+
+type Server struct {
+	Name        string
+	Ip          string
+	Description string
+	Services    []Service
+}
 
 type Config struct {
 	Services []Service
@@ -15,6 +24,30 @@ type Service struct {
 	ID   string
 	Name string
 	Args []string
+}
+
+func getJson(ep string) ([]Service, error) {
+	req, err := http.NewRequest("GET", os.Getenv("DB_URL")+"/streamer/encoders/"+ep, nil)
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	defer res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := Server{}
+	err = json.Unmarshal(body, &conf)
+	if err != nil {
+		return nil, err
+	}
+
+	return conf.Services, nil
 }
 
 func logTail(fname string) {
