@@ -47,15 +47,21 @@ func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 
-	var id string
+	vars := mux.Vars(r)
+	ep := vars["ep"]
+
 	c, err := getConf()
 	if err != nil {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
-		return
+		c, err = getJson(ep)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			return
+		}
 	}
 
 	var service string
 	var args []string
+	var id string
 	for _, v := range c.Services {
 		id = v.ID
 		service = v.Name
@@ -100,10 +106,16 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
 
+	vars := mux.Vars(r)
+	ep := vars["ep"]
+
 	c, err := getConf()
 	if err != nil {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
-		return
+		c, err = getJson(ep)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			return
+		}
 	}
 
 	var id string
@@ -128,11 +140,15 @@ func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	id := vars["id"]
+	ep := vars["ep"]
 
 	c, err := getConf()
 	if err != nil {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
-		return
+		c, err = getJson(ep)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			return
+		}
 	}
 
 	var service string
@@ -225,13 +241,21 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 	st := make(map[string]interface{})
 	vars := mux.Vars(r)
 	id := vars["id"]
+	ep := vars["ep"]
 
 	if a.Cmd[id] == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
 		return
 	}
 
-	c, _ := getConf()
+	c, err := getConf()
+	if err != nil {
+		c, err = getJson(ep)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			return
+		}
+	}
 
 	for _, i := range c.Services {
 		if id == i.ID {
@@ -275,7 +299,17 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 
 	var id string
 	var services []map[string]interface{}
-	c, _ := getConf()
+	vars := mux.Vars(r)
+	ep := vars["ep"]
+
+	c, err := getConf()
+	if err != nil {
+		c, err = getJson(ep)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			return
+		}
+	}
 
 	for _, i := range c.Services {
 		st := make(map[string]interface{})

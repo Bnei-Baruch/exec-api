@@ -82,16 +82,16 @@ func (a *App) Run(listenAddr string) {
 }
 
 func (a *App) initializeRoutes() {
-	a.Router.HandleFunc("/test", a.getData).Methods("GET")
-	a.Router.HandleFunc("/sysstat", a.sysStat).Methods("GET")
-	a.Router.HandleFunc("/status", a.execStatus).Methods("GET")
-	a.Router.HandleFunc("/start", a.startExec).Methods("GET")
-	a.Router.HandleFunc("/stop", a.stopExec).Methods("GET")
-	a.Router.HandleFunc("/start/{id}", a.startExecByID).Methods("GET")
-	a.Router.HandleFunc("/stop/{id}", a.stopExecByID).Methods("GET")
-	a.Router.HandleFunc("/status/{id}", a.execStatusByID).Methods("GET")
-	a.Router.HandleFunc("/cmdstat/{id}", a.cmdStat).Methods("GET")
-	a.Router.HandleFunc("/progress/{id}", a.getProgress).Methods("GET")
-	a.Router.HandleFunc("/report/{id}", a.getReport).Methods("GET")
-	a.Router.HandleFunc("/alive/{id}", a.isAlive).Methods("GET")
+	a.Router.HandleFunc("/{ep}/test", a.getData).Methods("GET")
+	a.Router.HandleFunc("/{ep}/sysstat", a.sysStat).Methods("GET")
+	a.Router.HandleFunc("/{ep}/status", a.execStatus).Methods("GET")
+	a.Router.HandleFunc("/{ep}/start", a.startExec).Methods("GET")
+	a.Router.HandleFunc("/{ep}/stop", a.stopExec).Methods("GET")
+	a.Router.HandleFunc("/{ep}/start/{id}", a.startExecByID).Methods("GET")
+	a.Router.HandleFunc("/{ep}/stop/{id}", a.stopExecByID).Methods("GET")
+	a.Router.HandleFunc("/{ep}/status/{id}", a.execStatusByID).Methods("GET")
+	a.Router.HandleFunc("/{ep}/cmdstat/{id}", a.cmdStat).Methods("GET")
+	a.Router.HandleFunc("/{ep}/progress/{id}", a.getProgress).Methods("GET")
+	a.Router.HandleFunc("/{ep}/report/{id}", a.getReport).Methods("GET")
+	a.Router.HandleFunc("/{ep}/alive/{id}", a.isAlive).Methods("GET")
 }

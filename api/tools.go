@@ -9,15 +9,11 @@ import (
 	"syscall"
 )
 
-type Server struct {
+type Config struct {
 	Name        string
 	Ip          string
 	Description string
 	Services    []Service
-}
-
-type Config struct {
-	Services []Service
 }
 
 type Service struct {
@@ -26,28 +22,31 @@ type Service struct {
 	Args []string
 }
 
-func getJson(ep string) ([]Service, error) {
+func getJson(ep string) (*Config, error) {
 	req, err := http.NewRequest("GET", os.Getenv("DB_URL")+"/streamer/encoders/"+ep, nil)
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	res, err := client.Do(req)
-	defer res.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	conf := Server{}
+	conf := Config{}
 	err = json.Unmarshal(body, &conf)
 	if err != nil {
 		return nil, err
 	}
 
-	return conf.Services, nil
+	return &conf, nil
 }
 
 func logTail(fname string) {
@@ -104,7 +103,7 @@ func getConf() (*Config, error) {
 	decoder := json.NewDecoder(file)
 	Config := Config{}
 	err = decoder.Decode(&Config)
-	fmt.Println(Config)
+	//fmt.Println(Config)
 	if err != nil {
 		return nil, err
 	}
