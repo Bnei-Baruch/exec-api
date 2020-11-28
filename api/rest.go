@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 func (a *App) getData(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +95,9 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 		}
 
 		a.Cmd[id].Start()
+
+		time.Sleep(2 * time.Second)
+
 		status := a.Cmd[id].Status()
 		if status.Exit == 1 {
 			continue
