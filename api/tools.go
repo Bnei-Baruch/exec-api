@@ -17,9 +17,10 @@ type Config struct {
 }
 
 type Service struct {
-	ID   string
-	Name string
-	Args []string
+	ID          string
+	Name        string
+	Description string
+	Args        []string
 }
 
 func getJson(ep string) (*Config, error) {

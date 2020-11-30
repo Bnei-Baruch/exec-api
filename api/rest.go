@@ -265,6 +265,7 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 		if id == i.ID {
 			st["name"] = i.Name
 			st["id"] = i.ID
+			st["description"] = i.Description
 			//st["args"] = i.Args
 		}
 	}
@@ -320,6 +321,7 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 		id = i.ID
 		st["name"] = i.Name
 		st["id"] = i.ID
+		st["description"] = i.Description
 		//st["args"] = i.Args
 
 		if a.Cmd[id] == nil {
