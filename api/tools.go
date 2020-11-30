@@ -23,7 +23,7 @@ type Service struct {
 }
 
 func getJson(ep string) (*Config, error) {
-	req, err := http.NewRequest("GET", os.Getenv("DB_URL")+"/streamer/encoders/"+ep, nil)
+	req, err := http.NewRequest("GET", os.Getenv("DB_URL")+ep, nil)
 	if err != nil {
 		return nil, err
 	}
