@@ -109,7 +109,7 @@ func (a *App) initMQTT() {
 
 		opts := mqtt.NewClientOptions()
 		opts.AddBroker(fmt.Sprintf("ssl://%s", server))
-		opts.SetClientID("exec_mqtt_client")
+		opts.SetClientID(ep + "-exec_mqtt_client")
 		opts.SetUsername(username)
 		opts.SetPassword(password)
 		//opts.SetDefaultPublishHandler(messagePubHandler)
