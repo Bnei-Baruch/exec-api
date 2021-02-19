@@ -105,6 +105,7 @@ func (a *App) initMQTT() {
 		server := os.Getenv("MQTT_URL")
 		username := os.Getenv("MQTT_USER")
 		password := os.Getenv("MQTT_PASS")
+		ep := os.Getenv("MQTT_EP")
 
 		opts := mqtt.NewClientOptions()
 		opts.AddBroker(fmt.Sprintf("ssl://%s", server))
@@ -120,7 +121,7 @@ func (a *App) initMQTT() {
 			log.Fatal().Err(err).Msg("initialize mqtt listener")
 		}
 
-		if token := a.Msg.Subscribe("exec/service/#", byte(1), a.MsgHandler); token.Wait() && token.Error() != nil {
+		if token := a.Msg.Subscribe("exec/service/"+ep+"/#", byte(1), a.MsgHandler); token.Wait() && token.Error() != nil {
 			log.Fatal().Err(token.Error()).Msg("mqtt.client Subscribe")
 		}
 	}
