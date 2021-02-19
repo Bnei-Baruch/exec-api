@@ -2,13 +2,12 @@ package api
 
 import (
 	"context"
-	"github.com/go-cmd/cmd"
-	"net/http"
-
 	"github.com/coreos/go-oidc"
+	"github.com/go-cmd/cmd"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog/log"
+	"net/http"
 
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 )
@@ -18,6 +17,7 @@ type App struct {
 	Handler       http.Handler
 	tokenVerifier *oidc.IDTokenVerifier
 	Cmd           map[string]*cmd.Cmd
+	mqttListener  *MQTTListener
 }
 
 func (a *App) Initialize(accountsUrl string, skipAuth bool) {
@@ -28,6 +28,7 @@ func (a *App) Initialize(accountsUrl string, skipAuth bool) {
 
 func (a *App) InitApp(accountsUrl string, skipAuth bool) {
 
+	a.initMQTT()
 	a.Router = mux.NewRouter()
 	a.initializeRoutes()
 
