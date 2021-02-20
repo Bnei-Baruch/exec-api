@@ -14,16 +14,16 @@ func (a *App) isAliveMqtt(ep string, id string) {
 		status := a.Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
-			a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
+			a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
 			return
 		}
 		if isruning {
-			a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Alive"}`)
+			a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Alive"}`)
 			return
 		}
 	}
 
-	a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Died"}`)
+	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Died"}`)
 }
 
 func (a *App) startExecMqtt(ep string) {
@@ -32,7 +32,7 @@ func (a *App) startExecMqtt(ep string) {
 	if err != nil {
 		c, err = getJson(ep)
 		if err != nil {
-			a.Publish("exec/service/"+ep, `{"error": 1, "message":"Failed get config"}`)
+			a.Publish("exec/service/data/"+ep, `{"error": 1, "message":"Failed get config"}`)
 			return
 		}
 	}
@@ -82,7 +82,7 @@ func (a *App) startExecMqtt(ep string) {
 	}
 
 	// TODO: return exec report
-	a.Publish("exec/service/"+ep, `{"error": 0, "message":"Success"}`)
+	a.Publish("exec/service/data/"+ep, `{"error": 0, "message":"Success"}`)
 }
 
 func (a *App) stopExecMqtt(ep string) {
@@ -91,7 +91,7 @@ func (a *App) stopExecMqtt(ep string) {
 	if err != nil {
 		c, err = getJson(ep)
 		if err != nil {
-			a.Publish("exec/service/"+ep, `{"error": 1, "message":"Failed get config"}`)
+			a.Publish("exec/service/data/"+ep, `{"error": 1, "message":"Failed get config"}`)
 			return
 		}
 	}
@@ -111,7 +111,7 @@ func (a *App) stopExecMqtt(ep string) {
 	}
 
 	// TODO: return report
-	a.Publish("exec/service/"+ep, `{"error": 0, "message":"Success"}`)
+	a.Publish("exec/service/data/"+ep, `{"error": 0, "message":"Success"}`)
 }
 
 func (a *App) startExecMqttByID(ep string, id string) {
@@ -120,7 +120,7 @@ func (a *App) startExecMqttByID(ep string, id string) {
 	if err != nil {
 		c, err = getJson(ep)
 		if err != nil {
-			a.Publish("exec/service/"+ep, `{"error": 1, "message":"Failed get config"}`)
+			a.Publish("exec/service/data/"+ep, `{"error": 1, "message":"Failed get config"}`)
 			return
 		}
 	}
@@ -136,7 +136,7 @@ func (a *App) startExecMqttByID(ep string, id string) {
 	}
 
 	if len(args) == 0 {
-		a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"ID not found"}`)
+		a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"ID not found"}`)
 		return
 	}
 
@@ -144,11 +144,11 @@ func (a *App) startExecMqttByID(ep string, id string) {
 		status := a.Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
-			a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
+			a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
 			return
 		}
 		if isruning {
-			a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Already executed"}`)
+			a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Already executed"}`)
 			return
 		}
 	}
@@ -168,40 +168,40 @@ func (a *App) startExecMqttByID(ep string, id string) {
 	a.Cmd[id].Start()
 	status := a.Cmd[id].Status()
 	if status.Exit == 1 {
-		a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Run Exec Failed"}`)
+		a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Run Exec Failed"}`)
 		return
 	}
 
-	a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Success"}`)
+	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Success"}`)
 }
 
 func (a *App) stopExecMqttByID(ep string, id string) {
 
 	if a.Cmd[id] == nil {
-		a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Nothing to stop"}`)
+		a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Nothing to stop"}`)
 		return
 	}
 
 	err := a.Cmd[id].Stop()
 	if err != nil {
-		a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
+		a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
 		return
 	}
 
-	a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Success"}`)
+	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Success"}`)
 }
 
 func (a *App) cmdStatMqtt(ep string, id string) {
 
 	if a.Cmd[id] == nil {
-		a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Nothing to show"}`)
+		a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Nothing to show"}`)
 		return
 	}
 
 	status := a.Cmd[id].Status()
 	data, _ := json.Marshal(status)
 
-	a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
+	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
 
 }
 
@@ -210,7 +210,7 @@ func (a *App) execStatusMqttByID(ep string, id string) {
 	st := make(map[string]interface{})
 
 	if a.Cmd[id] == nil {
-		a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Nothing to show"}`)
+		a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Nothing to show"}`)
 		return
 	}
 
@@ -218,7 +218,7 @@ func (a *App) execStatusMqttByID(ep string, id string) {
 	if err != nil {
 		c, err = getJson(ep)
 		if err != nil {
-			a.Publish("exec/service/"+ep, `{"error": 1, "message":"Failed get config"}`)
+			a.Publish("exec/service/data/"+ep, `{"error": 1, "message":"Failed get config"}`)
 			return
 		}
 	}
@@ -243,7 +243,7 @@ func (a *App) execStatusMqttByID(ep string, id string) {
 	status := a.Cmd[id].Status()
 	isruning, err := PidExists(status.PID)
 	if err != nil {
-		a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
+		a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
 		return
 	}
 	st["alive"] = isruning
@@ -261,7 +261,7 @@ func (a *App) execStatusMqttByID(ep string, id string) {
 
 	data, _ := json.Marshal(st)
 
-	a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
+	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
 }
 
 func (a *App) execStatusMqtt(ep string) {
@@ -273,7 +273,7 @@ func (a *App) execStatusMqtt(ep string) {
 	if err != nil {
 		c, err = getJson(ep)
 		if err != nil {
-			a.Publish("exec/service/"+ep, `{"error": 1, "message":"Failed get config"}`)
+			a.Publish("exec/service/data/"+ep, `{"error": 1, "message":"Failed get config"}`)
 			return
 		}
 	}
@@ -303,7 +303,7 @@ func (a *App) execStatusMqtt(ep string) {
 			status := a.Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
-				a.Publish("exec/service/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
+				a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
 				return
 			}
 			st["alive"] = isruning
@@ -325,7 +325,7 @@ func (a *App) execStatusMqtt(ep string) {
 
 	data, _ := json.Marshal(services)
 
-	a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
+	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
 }
 
 func (a *App) getProgressMqtt(ep string, id string) {
@@ -342,7 +342,7 @@ func (a *App) getProgressMqtt(ep string, id string) {
 
 	data, _ := json.Marshal(ffjson)
 
-	a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
+	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
 }
 
 func (a *App) getReportMqtt(ep string, id string) {
@@ -351,6 +351,6 @@ func (a *App) getReportMqtt(ep string, id string) {
 	p := <-progress.Start()
 
 	data, _ := json.Marshal(p)
-	a.Publish("exec/service/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
+	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
 
 }
