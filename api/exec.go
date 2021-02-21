@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/go-cmd/cmd"
 	"os"
 	"strings"
@@ -232,14 +233,6 @@ func (a *App) execStatusMqttByID(ep string, id string) {
 		}
 	}
 
-	if st["name"] == "ffmpeg" {
-		progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
-		p := <-progress.Start()
-		report := strings.Split(p.Stdout[0], "\r")
-		n := len(report)
-		st["log"] = report[n-1]
-	}
-
 	status := a.Cmd[id].Status()
 	isruning, err := PidExists(status.PID)
 	if err != nil {
@@ -247,6 +240,14 @@ func (a *App) execStatusMqttByID(ep string, id string) {
 		return
 	}
 	st["alive"] = isruning
+
+	if st["name"] == "ffmpeg" && isruning {
+		progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
+		p := <-progress.Start()
+		report := strings.Split(p.Stdout[0], "\r")
+		n := len(report)
+		st["log"] = report[n-1]
+	}
 
 	//prog := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
 	//pr := <-prog.Start()
@@ -292,19 +293,19 @@ func (a *App) execStatusMqtt(ep string) {
 			st["stop"] = 0
 			st["alive"] = false
 		} else {
-			if st["name"] == "ffmpeg" {
-				progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
-				p := <-progress.Start()
-				report := strings.Split(p.Stdout[0], "\r")
-				n := len(report)
-				st["log"] = report[n-1]
-			}
-
 			status := a.Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
 				a.Publish("exec/service/data/"+ep, `{"error": 1, "message":"Error"}`)
 				return
+			}
+
+			if isruning && st["name"] == "ffmpeg" {
+				progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
+				p := <-progress.Start()
+				report := strings.Split(p.Stdout[0], "\r")
+				n := len(report)
+				st["log"] = report[n-1]
 			}
 			st["alive"] = isruning
 
@@ -319,11 +320,14 @@ func (a *App) execStatusMqtt(ep string) {
 			st["start"] = status.StartTs
 			st["stop"] = status.StopTs
 		}
-
 		services = append(services, st)
 	}
 
-	data, _ := json.Marshal(services)
+	data, err := json.Marshal(services)
+
+	if err != nil {
+		fmt.Printf("Received message: %s from topic: %s\n", err, string(data))
+	}
 
 	a.Publish("exec/service/data/"+ep, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
 }
