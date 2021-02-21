@@ -303,7 +303,7 @@ func (a *App) execStatusMqtt(ep string) {
 			status := a.Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
-				a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 1, "message":"Error"}`)
+				a.Publish("exec/service/data/"+ep, `{"error": 1, "message":"Error"}`)
 				return
 			}
 			st["alive"] = isruning
@@ -325,7 +325,7 @@ func (a *App) execStatusMqtt(ep string) {
 
 	data, _ := json.Marshal(services)
 
-	a.Publish("exec/service/data/"+ep+"/"+id, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
+	a.Publish("exec/service/data/"+ep, `{"error": 0, "message":"Success", "data": `+string(data)+`}`)
 }
 
 func (a *App) getProgressMqtt(ep string, id string) {
