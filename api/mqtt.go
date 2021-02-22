@@ -7,6 +7,26 @@ import (
 	"strings"
 )
 
+func (a *App) SubMQTT(c mqtt.Client) {
+	fmt.Println("- Connected to MQTT -")
+	ep := os.Getenv("MQTT_EP")
+	if token := a.Msg.Subscribe("exec/service/"+ep+"/#", byte(1), a.MsgHandler); token.Wait() && token.Error() != nil {
+		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
+	} else {
+		fmt.Printf("%s\n", "MQTT Subscription: exec/service/"+ep+"/#")
+	}
+
+	if token := a.Msg.Subscribe("kli/exec/service/"+ep+"/#", byte(1), a.MsgHandler); token.Wait() && token.Error() != nil {
+		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
+	} else {
+		fmt.Printf("%s\n", "MQTT Subscription: kli/exec/service/"+ep+"/#")
+	}
+}
+
+func (a *App) LostMQTT(c mqtt.Client, e error) {
+	fmt.Printf("MQTT Connection Error: %s\n", e)
+}
+
 func (a *App) MsgHandler(c mqtt.Client, m mqtt.Message) {
 	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
 	var id = "false"
