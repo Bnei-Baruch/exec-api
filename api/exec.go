@@ -77,6 +77,7 @@ func (a *App) startExecMqtt(ep string) {
 		time.Sleep(2 * time.Second)
 
 		status := a.Cmd[id].Status()
+
 		if status.Exit == 1 {
 			continue
 		}
@@ -241,19 +242,12 @@ func (a *App) execStatusMqttByID(ep string, id string) {
 	}
 	st["alive"] = isruning
 
-	if st["name"] == "ffmpeg" && isruning {
-		progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
-		p := <-progress.Start()
-		report := strings.Split(p.Stdout[0], "\r")
-		n := len(report)
-		st["log"] = report[n-1]
-	}
-
-	//prog := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
-	//pr := <-prog.Start()
-	//for _, line := range pr.Stdout {
-	//	args := strings.Split(line, "=")
-	//	st[args[0]] = args[1]
+	//if st["name"] == "ffmpeg" && isruning {
+	//	progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
+	//	p := <-progress.Start()
+	//	report := strings.Split(p.Stdout[0], "\r")
+	//	n := len(report)
+	//	st["log"] = report[n-1]
 	//}
 
 	st["runtime"] = status.Runtime
@@ -300,22 +294,15 @@ func (a *App) execStatusMqtt(ep string) {
 				return
 			}
 
-			if isruning && st["name"] == "ffmpeg" {
-				progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
-				p := <-progress.Start()
-				report := strings.Split(p.Stdout[0], "\r")
-				n := len(report)
-				st["log"] = report[n-1]
-			}
-			st["alive"] = isruning
-
-			//prog := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
-			//pr := <-prog.Start()
-			//for _, line := range pr.Stdout {
-			//	args := strings.Split(line, "=")
-			//	st[args[0]] = args[1]
+			//if isruning && st["name"] == "ffmpeg" {
+			//	progress := cmd.NewCmd("tail", "-c", "1000", "report_"+id+".log")
+			//	p := <-progress.Start()
+			//	report := strings.Split(p.Stdout[0], "\r")
+			//	n := len(report)
+			//	st["log"] = report[n-1]
 			//}
 
+			st["alive"] = isruning
 			st["runtime"] = status.Runtime
 			st["start"] = status.StartTs
 			st["stop"] = status.StopTs

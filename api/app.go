@@ -113,8 +113,8 @@ func (a *App) initMQTT() {
 		opts.SetUsername(username)
 		opts.SetPassword(password)
 		//opts.SetDefaultPublishHandler(messagePubHandler)
-		//opts.OnConnect = connectHandler
-		//opts.OnConnectionLost = connectLostHandler
+		opts.OnConnect = connectHandler
+		opts.OnConnectionLost = connectLostHandler
 		a.Msg = mqtt.NewClient(opts)
 		if token := a.Msg.Connect(); token.Wait() && token.Error() != nil {
 			err := token.Error()
@@ -124,5 +124,17 @@ func (a *App) initMQTT() {
 		if token := a.Msg.Subscribe("exec/service/"+ep+"/#", byte(1), a.MsgHandler); token.Wait() && token.Error() != nil {
 			log.Fatal().Err(token.Error()).Msg("mqtt.client Subscribe")
 		}
+
+		if token := a.Msg.Subscribe("kli/exec/service/"+ep+"/#", byte(1), a.MsgHandler); token.Wait() && token.Error() != nil {
+			log.Fatal().Err(token.Error()).Msg("mqtt.client Subscribe")
+		}
 	}
+}
+
+var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
+	fmt.Println("Connected to MQTT")
+}
+
+var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
+	log.Fatal().Err(err).Msg("Connect lost")
 }
