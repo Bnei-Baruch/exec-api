@@ -29,7 +29,7 @@ func (a *App) LostMQTT(c mqtt.Client, e error) {
 
 func (a *App) MsgHandler(c mqtt.Client, m mqtt.Message) {
 	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
-	var id = "false"
+	id := "false"
 	s := strings.Split(m.Topic(), "/")
 	p := string(m.Payload())
 	ep := os.Getenv("MQTT_EP")
@@ -40,26 +40,34 @@ func (a *App) MsgHandler(c mqtt.Client, m mqtt.Message) {
 		id = s[3]
 	}
 
-	if p == "start" && id == "false" {
-		go a.startExecMqtt(ep)
-	} else if p == "start" && id != "false" {
-		go a.startExecMqttByID(ep, id)
-	} else if p == "stop" && id == "false" {
-		go a.stopExecMqtt(ep)
-	} else if p == "stop" && id != "false" {
-		go a.stopExecMqttByID(ep, id)
-	} else if p == "status" && id == "false" {
-		go a.execStatusMqtt(ep)
-	} else if p == "status" && id != "false" {
-		go a.execStatusMqttByID(ep, id)
-	} else if p == "cmdstat" && id != "false" {
-		go a.cmdStatMqtt(ep, id)
-	} else if p == "progress" && id != "false" {
-		go a.getProgressMqtt(ep, id)
-	} else if p == "report" && id != "false" {
-		go a.getReportMqtt(ep, id)
-	} else if p == "alive" && id != "false" {
-		go a.isAliveMqtt(ep, id)
+	if id == "false" {
+		switch p {
+		case "start":
+			go a.startExecMqtt(ep)
+		case "stop":
+			go a.stopExecMqtt(ep)
+		case "status":
+			go a.execStatusMqtt(ep)
+		}
+	}
+
+	if id != "false" {
+		switch p {
+		case "start":
+			go a.startExecMqttByID(ep, id)
+		case "stop":
+			go a.stopExecMqttByID(ep, id)
+		case "status":
+			go a.execStatusMqttByID(ep, id)
+		case "cmdstat":
+			go a.cmdStatMqtt(ep, id)
+		case "progress":
+			go a.getProgressMqtt(ep, id)
+		case "report":
+			go a.getReportMqtt(ep, id)
+		case "alive":
+			go a.isAliveMqtt(ep, id)
+		}
 	}
 }
 
