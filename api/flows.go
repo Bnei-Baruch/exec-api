@@ -11,10 +11,20 @@ func (a *App) startFlow(mp MqttPayload, id string) {
 	rp := MqttPayload{}
 
 	u, _ := json.Marshal(wp)
+
 	err := workflow.MdbWrite(rp.Action, string(u))
 	if err != nil {
 		rp.Error = err
 		rp.Message = "MDB Request Failed"
+		m, _ := json.Marshal(rp)
+		a.Publish("workflow/service/data/"+rp.Action, string(m))
+		return
+	}
+
+	err = workflow.WfdbWrite(rp.Action, string(u))
+	if err != nil {
+		rp.Error = err
+		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
 		a.Publish("workflow/service/data/"+rp.Action, string(m))
 		return

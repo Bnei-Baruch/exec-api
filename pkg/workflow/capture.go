@@ -1,7 +1,9 @@
 package workflow
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -78,7 +80,57 @@ type Line struct {
 	Tags           []string `json:"tags"`
 }
 
+func GetCaptureState(ep string) (*CaptureState, error) {
+	req, err := http.NewRequest("GET", "http://wfsrv.bbdomain.org/wfdb/state/ingest/"+ep, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	state := CaptureState{}
+	err = json.Unmarshal(body, &state)
+	if err != nil {
+		return nil, err
+	}
+
+	return &state, nil
+}
+
+//http://app.mdb.bbdomain.org/operations/capture_start
+//http://wfsrv.bbdomain.org/wfdb/ingest/c1614171796704
+
 func MdbWrite(ep string, payload string) error {
+	server := os.Getenv("MDB_URL")
+	body := strings.NewReader(payload)
+	req, err := http.NewRequest("POST", server+"/"+ep, body)
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	response, err := client.Do(req)
+	defer response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		fmt.Println("Non-OK HTTP status:", response.StatusCode)
+		return err
+	}
+
+	return nil
+}
+
+func WfdbWrite(ep string, payload string) error {
 	server := os.Getenv("WFDB_URL")
 	body := strings.NewReader(payload)
 	req, err := http.NewRequest("PUT", server+"/"+ep, body)

@@ -3,8 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/go-cmd/cmd"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -158,6 +160,33 @@ func (a *App) startExecMqttByID(ep string, id string) {
 	if a.Cmd == nil {
 		a.Cmd = make(map[string]*cmd.Cmd)
 	}
+
+	// <-- For Ingest capture only -- //
+	chk, err := regexp.MatchString(`^(mltmain|mltbackup|maincap|backupcap)$`, id)
+	if err != nil {
+		fmt.Println("Regexp Failed:", err)
+	}
+
+	if chk == true {
+		cs, err := workflow.GetCaptureState(id)
+		if err != nil {
+			fmt.Println("GetCaptureState Failed:", err)
+			//TODO: generate id and start capture
+			return
+		}
+
+		// Set capture filename with workflow ID
+		for k, v := range args {
+			switch v {
+			case "comment=ID":
+				args[k] = strings.Replace(args[k], "ID", cs.CaptureID, 1)
+				args[k] = cs.CaptureID
+			case "/capture/NAME.mp4":
+				args[k] = strings.Replace(args[k], "NAME", cs.CaptureID, 1)
+			}
+		}
+	}
+	// -- For Ingest capture only --> //
 
 	if service == "ffmpeg" {
 		cmdOptions := cmd.Options{Buffered: false, Streaming: false}
