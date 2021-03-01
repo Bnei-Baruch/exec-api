@@ -8,15 +8,17 @@ import (
 	"strings"
 )
 
+const RespondTopic = "exec/service/data/"
+
 type MqttPayload struct {
-	Action  string                 `json:"action,omitempty"`
-	ID      string                 `json:"id,omitempty"`
-	Name    string                 `json:"name,omitempty"`
-	Source  string                 `json:"src,omitempty"`
-	Error   error                  `json:"error,omitempty"`
-	Message string                 `json:"message,omitempty"`
-	Result  string                 `json:"result,omitempty"`
-	Data    map[string]interface{} `json:"data,omitempty"`
+	Action  string      `json:"action,omitempty"`
+	ID      string      `json:"id,omitempty"`
+	Name    string      `json:"name,omitempty"`
+	Source  string      `json:"src,omitempty"`
+	Error   error       `json:"error,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Result  string      `json:"result,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
 func (a *App) SubMQTT(c mqtt.Client) {
@@ -128,5 +130,24 @@ func (a *App) Publish(topic string, message string) {
 	//a.Msg.Publish(topic, byte(1), false, text)
 	if token := a.Msg.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
 		fmt.Printf("Publish message error: %s\n", token.Error())
+	}
+}
+
+func (a *App) SendRespond(ep string, id string, m *MqttPayload) {
+	var topic string
+
+	if id == "false" {
+		topic = RespondTopic + ep
+	} else {
+		topic = RespondTopic + ep + "/" + id
+	}
+	message, err := json.Marshal(m)
+	if err != nil {
+		fmt.Printf("Files respond with json: %s\n", err)
+	}
+
+	text := fmt.Sprintf(string(message))
+	if token := a.Msg.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
+		fmt.Printf("Send Respond error: %s\n", token.Error())
 	}
 }
