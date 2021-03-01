@@ -9,11 +9,14 @@ import (
 )
 
 type MqttPayload struct {
-	Action  string                 `json:"action"`
-	Error   error                  `json:"error"`
-	Message string                 `json:"message"`
-	Result  string                 `json:"result"`
-	Data    map[string]interface{} `json:"data"`
+	Action  string                 `json:"action,omitempty"`
+	ID      string                 `json:"id,omitempty"`
+	Name    string                 `json:"name,omitempty"`
+	Source  string                 `json:"src,omitempty"`
+	Error   error                  `json:"error,omitempty"`
+	Message string                 `json:"message,omitempty"`
+	Result  string                 `json:"result,omitempty"`
+	Data    map[string]interface{} `json:"data,omitempty"`
 }
 
 func (a *App) SubMQTT(c mqtt.Client) {
@@ -96,7 +99,7 @@ func (a *App) workflowMessage(c mqtt.Client, m mqtt.Message) {
 	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
 	id := "false"
 	s := strings.Split(m.Topic(), "/")
-	ep := os.Getenv("MQTT_EP")
+	//ep := os.Getenv("MQTT_EP")
 
 	if s[0] == "kli" && len(s) == 5 {
 		id = s[4]
@@ -115,9 +118,7 @@ func (a *App) workflowMessage(c mqtt.Client, m mqtt.Message) {
 		case "start":
 			go a.startFlow(mp, id)
 		case "stop":
-			go a.stopFlow(ep, id)
-		case "wflow":
-			go a.wflowFlow(ep, id)
+			go a.stopFlow(mp, id)
 		}
 	}
 }

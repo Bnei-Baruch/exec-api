@@ -162,12 +162,12 @@ func (a *App) startExecMqttByID(ep string, id string) {
 	}
 
 	// <-- For Ingest capture only -- //
-	chk, err := regexp.MatchString(`^(mltmain|mltbackup|maincap|backupcap)$`, id)
+	src, err := regexp.MatchString(`^(mltmain|mltbackup|maincap|backupcap)$`, id)
 	if err != nil {
 		fmt.Println("Regexp Failed:", err)
 	}
 
-	if chk == true {
+	if src == true {
 		cs, err := workflow.GetCaptureState(id)
 		if err != nil {
 			fmt.Println("GetCaptureState Failed:", err)
