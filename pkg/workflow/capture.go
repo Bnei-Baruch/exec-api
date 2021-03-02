@@ -103,6 +103,7 @@ type CaptureFlow struct {
 func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
 	body := strings.NewReader(string(u))
+	fmt.Println("MDB Payload:", body)
 	req, err := http.NewRequest("POST", MdbUrl+ep, body)
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}

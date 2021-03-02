@@ -101,7 +101,7 @@ func (a *App) workflowMessage(c mqtt.Client, m mqtt.Message) {
 	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
 	id := "false"
 	s := strings.Split(m.Topic(), "/")
-	//ep := os.Getenv("MQTT_EP")
+	ep := os.Getenv("MQTT_EP")
 
 	if s[0] == "kli" && len(s) == 5 {
 		id = s[4]
@@ -118,9 +118,9 @@ func (a *App) workflowMessage(c mqtt.Client, m mqtt.Message) {
 	if id != "false" {
 		switch mp.Action {
 		case "start":
-			go a.startFlow(mp, id)
+			go a.startFlow(mp, ep)
 		case "stop":
-			go a.stopFlow(mp, id)
+			go a.stopFlow(mp, ep)
 		}
 	}
 }

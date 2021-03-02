@@ -58,7 +58,7 @@ func (a *App) stopFlow(rp MqttPayload, id string) {
 
 	StopName := rp.Name
 
-	file, err := os.Open("/capture/" + id + ".mp4")
+	file, err := os.Open("/capture/" + rp.ID + ".mp4")
 	if err != nil {
 		return
 	}
