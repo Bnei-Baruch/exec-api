@@ -3,6 +3,7 @@ package workflow
 import (
 	"encoding/json"
 	"fmt"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -100,14 +101,28 @@ type CaptureFlow struct {
 	Url       string `json:"url"`
 }
 
+var Data = 10
+
+func WorkflowState(c mqtt.Client, m mqtt.Message) {
+	cs := &CaptureState{}
+	err := json.Unmarshal(m.Payload(), &cs)
+	fmt.Println("onMsg State:", cs)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+}
+
 func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
 	body := strings.NewReader(string(u))
 	fmt.Println("MDB Payload:", body)
-	req, err := http.NewRequest("POST", MdbUrl+ep, body)
-	req.Header.Set("Content-Type", "application/json")
+	r, err := http.NewRequest("POST", MdbUrl+ep, body)
+	if err != nil {
+		return err
+	}
+	r.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	response, err := client.Do(req)
+	response, err := client.Do(r)
 	defer response.Body.Close()
 	if err != nil {
 		return err

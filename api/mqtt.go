@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/eclipse/paho.mqtt.golang"
 	"os"
 	"strings"
@@ -46,6 +47,12 @@ func (a *App) SubMQTT(c mqtt.Client) {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
 		fmt.Printf("%s\n", "MQTT Subscription: kli/workflow/service/"+ep+"/#")
+	}
+
+	if token := a.Msg.Subscribe("workflow/state/capture/"+ep+"/#", byte(1), workflow.WorkflowState); token.Wait() && token.Error() != nil {
+		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
+	} else {
+		fmt.Printf("%s\n", "MQTT Subscription: workflow/state/capture/"+ep+"/#")
 	}
 }
 
@@ -122,6 +129,15 @@ func (a *App) workflowMessage(c mqtt.Client, m mqtt.Message) {
 		case "stop":
 			go a.stopFlow(mp, ep)
 		}
+	}
+}
+
+func (a *App) workflowState(c mqtt.Client, m mqtt.Message) {
+	cs := workflow.CaptureState{}
+	err := json.Unmarshal(m.Payload(), &cs)
+	fmt.Println("onMsg State:", cs)
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 }
 

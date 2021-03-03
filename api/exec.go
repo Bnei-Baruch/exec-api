@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/pkg/workflow"
+	wf "github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/go-cmd/cmd"
 	"os"
 	"regexp"
@@ -191,7 +191,8 @@ func (a *App) startExecMqttByID(ep string, id string) {
 	}
 
 	if src == true {
-		cs, err := workflow.GetCaptureState(id)
+
+		cs, err := wf.GetCaptureState(id)
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Internal error"
@@ -275,6 +276,15 @@ func (a *App) cmdStatMqtt(ep string, id string) {
 }
 
 func (a *App) execStatusMqttByID(ep string, id string) {
+
+	var cs *wf.CaptureState
+	aa := &wf.Data
+	fmt.Println("Address of Data is", aa)
+	fmt.Println("Value of Data is", *aa)
+
+	//cs := workflow.CaptureState{}
+	fmt.Println("MDB Payload:", &cs)
+	fmt.Println("MDB Payload:", cs)
 
 	st := make(map[string]interface{})
 	rp := &MqttPayload{}
