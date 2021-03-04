@@ -108,7 +108,7 @@ func GetState() *CaptureState {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-
+	fmt.Println("GetState:", cs)
 	return cs
 }
 
@@ -118,6 +118,7 @@ func SetState(c mqtt.Client, m mqtt.Message) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	fmt.Println("SetState:", cs)
 	Data = m.Payload()
 }
 

@@ -59,14 +59,23 @@ func Publish(topic string, message string, c mqtt.Client) {
 	}
 }
 
-func StartFlow(rp MqttWorkflow, id string, c mqtt.Client) {
+func StartFlow(rp MqttWorkflow, src string, c mqtt.Client) {
+
+	cs := GetState()
+	if cs.CaptureID == "" {
+		rp.Error = fmt.Errorf("error")
+		rp.Message = "Internal error"
+		m, _ := json.Marshal(rp)
+		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		return
+	}
 
 	cm := &MdbPayload{
-		CaptureSource: id,
-		Station:       GetStationID(id),
+		CaptureSource: src,
+		Station:       GetStationID(src),
 		User:          "operator@dev.com",
-		FileName:      rp.Name,
-		WorkflowID:    rp.ID,
+		FileName:      cs.StartName,
+		WorkflowID:    cs.CaptureID,
 	}
 
 	err := cm.PostMDB("capture_start")
@@ -80,10 +89,10 @@ func StartFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 
 	ws := &Wfstatus{Capwf: false, Trimmed: false, Sirtutim: false}
 	cw := &WfdbCapture{
-		CaptureID: rp.ID,
-		Date:      GetDateFromID(rp.ID),
-		StartName: rp.Name,
-		CapSrc:    id,
+		CaptureID: cs.CaptureID,
+		Date:      GetDateFromID(cs.CaptureID),
+		StartName: cs.StartName,
+		CapSrc:    src,
 		Wfstatus:  *ws,
 	}
 
@@ -102,9 +111,18 @@ func StartFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 	Publish("workflow/service/data/"+rp.Action, string(m), c)
 }
 
-func StopFlow(rp MqttWorkflow, id string, c mqtt.Client) {
+func StopFlow(rp MqttWorkflow, src string, c mqtt.Client) {
 
-	StopName := rp.Name
+	cs := GetState()
+	if cs.CaptureID == "" {
+		rp.Error = fmt.Errorf("error")
+		rp.Message = "Internal error"
+		m, _ := json.Marshal(rp)
+		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		return
+	}
+
+	StopName := cs.StopName
 
 	file, err := os.Open("/capture/" + rp.ID + ".mp4")
 	if err != nil {
@@ -127,18 +145,18 @@ func StopFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 	fmt.Println("stopFlow file sha1:", sha)
 
 	cm := &MdbPayload{
-		CaptureSource: id,
-		Station:       GetStationID(id),
+		CaptureSource: src,
+		Station:       GetStationID(src),
 		User:          "operator@dev.com",
 		FileName:      StopName,
-		WorkflowID:    rp.ID,
+		WorkflowID:    cs.CaptureID,
 		Size:          size,
 		Sha:           sha,
 		Part:          "false",
 	}
 
 	cw := &WfdbCapture{}
-	err = cw.GetWFDB(id)
+	err = cw.GetWFDB(cs.CaptureID)
 	if err != nil {
 		fmt.Println("WfdbRead Failed:", err)
 		return
@@ -148,7 +166,7 @@ func StopFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 	cw.StopName = StopName
 
 	//Main Multi Capture
-	if id == "mltmain" {
+	if src == "mltmain" {
 		if cw.Line.ContentType == "LESSON_PART" {
 			cm.Part = strconv.Itoa(cw.Line.Part)
 			cm.LessonID = cw.Line.LessonID
@@ -156,15 +174,15 @@ func StopFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 	}
 
 	//Backup Multi Capture
-	if id == "mltbackup" {
-		cs, err := GetCaptureState(id)
+	if src == "mltbackup" {
+		cs, err := GetCaptureState(src) //FIXME!!!
 		if err != nil {
 			fmt.Println("GetCaptureState Failed:", err)
 			return
 		}
 		cw.Line = cs.Line
 		if cw.Line.ContentType == "LESSON_PART" {
-			StopName := rp.Name[:len(rp.Name)-2] + "full"
+			StopName := StopName[:len(StopName)-2] + "full"
 			cw.Line.ContentType = "FULL_LESSON"
 			cw.Line.Part = -1
 			cw.Line.LessonID = cs.Line.LessonID
@@ -189,8 +207,8 @@ func StopFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 		return
 	}
 
-	FullName := StopName + "_" + id + ".mp4"
-	err = os.Rename("/capture/"+id+".mp4", "/capture/"+FullName)
+	FullName := StopName + "_" + cs.CaptureID + ".mp4"
+	err = os.Rename("/capture/"+cs.CaptureID+".mp4", "/capture/"+FullName)
 	if err != nil {
 		return
 	}
@@ -199,7 +217,7 @@ func StopFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 		FileName:  FullName,
 		Source:    "ingest",
 		CapSrc:    rp.Source,
-		CaptureID: id,
+		CaptureID: cs.CaptureID,
 		Size:      size,
 		Sha:       sha,
 		Url:       "http://" + cm.Station + ":8081/get/" + FullName,
