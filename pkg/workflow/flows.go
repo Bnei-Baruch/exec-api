@@ -5,13 +5,23 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/api"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 )
+
+type MqttWorkflow struct {
+	Action  string      `json:"action,omitempty"`
+	ID      string      `json:"id,omitempty"`
+	Name    string      `json:"name,omitempty"`
+	Source  string      `json:"src,omitempty"`
+	Error   error       `json:"error,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Result  string      `json:"result,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+}
 
 func MqttMessage(c mqtt.Client, m mqtt.Message) {
 	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
@@ -25,7 +35,7 @@ func MqttMessage(c mqtt.Client, m mqtt.Message) {
 		id = s[3]
 	}
 
-	mp := api.MqttPayload{}
+	mp := MqttWorkflow{}
 	err := json.Unmarshal(m.Payload(), &mp)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -49,7 +59,7 @@ func Publish(topic string, message string, c mqtt.Client) {
 	}
 }
 
-func StartFlow(rp api.MqttPayload, id string, c mqtt.Client) {
+func StartFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 
 	cm := &MdbPayload{
 		CaptureSource: id,
@@ -92,7 +102,7 @@ func StartFlow(rp api.MqttPayload, id string, c mqtt.Client) {
 	Publish("workflow/service/data/"+rp.Action, string(m), c)
 }
 
-func StopFlow(rp api.MqttPayload, id string, c mqtt.Client) {
+func StopFlow(rp MqttWorkflow, id string, c mqtt.Client) {
 
 	StopName := rp.Name
 
