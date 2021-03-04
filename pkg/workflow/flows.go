@@ -10,7 +10,44 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 )
+
+func MqttMessage(c mqtt.Client, m mqtt.Message) {
+	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
+	id := "false"
+	s := strings.Split(m.Topic(), "/")
+	ep := os.Getenv("MQTT_EP")
+
+	if s[0] == "kli" && len(s) == 5 {
+		id = s[4]
+	} else if s[0] == "workflow" && len(s) == 4 {
+		id = s[3]
+	}
+
+	mp := api.MqttPayload{}
+	err := json.Unmarshal(m.Payload(), &mp)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	if id != "false" {
+		switch mp.Action {
+		case "start":
+			go StartFlow(mp, ep, c)
+		case "stop":
+			go StopFlow(mp, ep, c)
+		}
+	}
+}
+
+func Publish(topic string, message string, c mqtt.Client) {
+	text := fmt.Sprintf(message)
+	//a.Msg.Publish(topic, byte(1), false, text)
+	if token := c.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
+		fmt.Printf("Publish message error: %s\n", token.Error())
+	}
+}
 
 func StartFlow(rp api.MqttPayload, id string, c mqtt.Client) {
 
@@ -27,7 +64,7 @@ func StartFlow(rp api.MqttPayload, id string, c mqtt.Client) {
 		rp.Error = err
 		rp.Message = "MDB Request Failed"
 		m, _ := json.Marshal(rp)
-		api.Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish("workflow/service/data/"+rp.Action, string(m), c)
 		return
 	}
 
@@ -45,14 +82,14 @@ func StartFlow(rp api.MqttPayload, id string, c mqtt.Client) {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
-		api.Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish("workflow/service/data/"+rp.Action, string(m), c)
 		return
 	}
 
 	rp.Message = "Success"
 	m, _ := json.Marshal(rp)
 
-	api.Publish("workflow/service/data/"+rp.Action, string(m), c)
+	Publish("workflow/service/data/"+rp.Action, string(m), c)
 }
 
 func StopFlow(rp api.MqttPayload, id string, c mqtt.Client) {
@@ -133,7 +170,7 @@ func StopFlow(rp api.MqttPayload, id string, c mqtt.Client) {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
-		api.Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish("workflow/service/data/"+rp.Action, string(m), c)
 		return
 	}
 
@@ -166,5 +203,5 @@ func StopFlow(rp api.MqttPayload, id string, c mqtt.Client) {
 	rp.Message = "Success"
 	m, _ := json.Marshal(rp)
 
-	api.Publish("workflow/service/data/"+rp.Action, string(m), c)
+	Publish("workflow/service/data/"+rp.Action, string(m), c)
 }
