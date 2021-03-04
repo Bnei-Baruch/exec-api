@@ -1,21 +1,22 @@
-package api
+package workflow
 
 import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/pkg/workflow"
+	"github.com/Bnei-Baruch/exec-api/api"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io"
 	"os"
 	"strconv"
 )
 
-func (a *App) startFlow(rp MqttPayload, id string) {
+func StartFlow(rp api.MqttPayload, id string, c mqtt.Client) {
 
-	cm := &workflow.MdbPayload{
+	cm := &MdbPayload{
 		CaptureSource: id,
-		Station:       workflow.GetStationID(id),
+		Station:       GetStationID(id),
 		User:          "operator@dev.com",
 		FileName:      rp.Name,
 		WorkflowID:    rp.ID,
@@ -26,14 +27,14 @@ func (a *App) startFlow(rp MqttPayload, id string) {
 		rp.Error = err
 		rp.Message = "MDB Request Failed"
 		m, _ := json.Marshal(rp)
-		a.Publish("workflow/service/data/"+rp.Action, string(m))
+		api.Publish("workflow/service/data/"+rp.Action, string(m), c)
 		return
 	}
 
-	ws := &workflow.Wfstatus{Capwf: false, Trimmed: false, Sirtutim: false}
-	cw := &workflow.WfdbCapture{
+	ws := &Wfstatus{Capwf: false, Trimmed: false, Sirtutim: false}
+	cw := &WfdbCapture{
 		CaptureID: rp.ID,
-		Date:      workflow.GetDateFromID(rp.ID),
+		Date:      GetDateFromID(rp.ID),
 		StartName: rp.Name,
 		CapSrc:    id,
 		Wfstatus:  *ws,
@@ -44,17 +45,17 @@ func (a *App) startFlow(rp MqttPayload, id string) {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
-		a.Publish("workflow/service/data/"+rp.Action, string(m))
+		api.Publish("workflow/service/data/"+rp.Action, string(m), c)
 		return
 	}
 
 	rp.Message = "Success"
 	m, _ := json.Marshal(rp)
 
-	a.Publish("workflow/service/data/"+rp.Action, string(m))
+	api.Publish("workflow/service/data/"+rp.Action, string(m), c)
 }
 
-func (a *App) stopFlow(rp MqttPayload, id string) {
+func StopFlow(rp api.MqttPayload, id string, c mqtt.Client) {
 
 	StopName := rp.Name
 
@@ -78,9 +79,9 @@ func (a *App) stopFlow(rp MqttPayload, id string) {
 	sha := hex.EncodeToString(h.Sum(nil))
 	fmt.Println("stopFlow file sha1:", sha)
 
-	cm := &workflow.MdbPayload{
+	cm := &MdbPayload{
 		CaptureSource: id,
-		Station:       workflow.GetStationID(id),
+		Station:       GetStationID(id),
 		User:          "operator@dev.com",
 		FileName:      StopName,
 		WorkflowID:    rp.ID,
@@ -89,7 +90,7 @@ func (a *App) stopFlow(rp MqttPayload, id string) {
 		Part:          "false",
 	}
 
-	cw := &workflow.WfdbCapture{}
+	cw := &WfdbCapture{}
 	err = cw.GetWFDB(id)
 	if err != nil {
 		fmt.Println("WfdbRead Failed:", err)
@@ -109,7 +110,7 @@ func (a *App) stopFlow(rp MqttPayload, id string) {
 
 	//Backup Multi Capture
 	if id == "mltbackup" {
-		cs, err := workflow.GetCaptureState(id)
+		cs, err := GetCaptureState(id)
 		if err != nil {
 			fmt.Println("GetCaptureState Failed:", err)
 			return
@@ -132,7 +133,7 @@ func (a *App) stopFlow(rp MqttPayload, id string) {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
-		a.Publish("workflow/service/data/"+rp.Action, string(m))
+		api.Publish("workflow/service/data/"+rp.Action, string(m), c)
 		return
 	}
 
@@ -147,7 +148,7 @@ func (a *App) stopFlow(rp MqttPayload, id string) {
 		return
 	}
 
-	cf := workflow.CaptureFlow{
+	cf := CaptureFlow{
 		FileName:  FullName,
 		Source:    "ingest",
 		CapSrc:    rp.Source,
@@ -165,5 +166,5 @@ func (a *App) stopFlow(rp MqttPayload, id string) {
 	rp.Message = "Success"
 	m, _ := json.Marshal(rp)
 
-	a.Publish("workflow/service/data/"+rp.Action, string(m))
+	api.Publish("workflow/service/data/"+rp.Action, string(m), c)
 }

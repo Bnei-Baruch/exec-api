@@ -5,7 +5,6 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -101,35 +100,45 @@ type CaptureFlow struct {
 	Url       string `json:"url"`
 }
 
-var Data = 10
+var Data []byte
 
-func WorkflowState(c mqtt.Client, m mqtt.Message) {
+func GetState() *CaptureState {
 	cs := &CaptureState{}
-	err := json.Unmarshal(m.Payload(), &cs)
-	fmt.Println("onMsg State:", cs)
+	err := json.Unmarshal(Data, &cs)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+
+	return cs
+}
+
+func SetState(c mqtt.Client, m mqtt.Message) {
+	cs := &CaptureState{}
+	err := json.Unmarshal(m.Payload(), &cs)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	Data = m.Payload()
 }
 
 func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
 	body := strings.NewReader(string(u))
 	fmt.Println("MDB Payload:", body)
-	r, err := http.NewRequest("POST", MdbUrl+ep, body)
+	req, err := http.NewRequest("POST", MdbUrl+ep, body)
 	if err != nil {
 		return err
 	}
-	r.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	response, err := client.Do(r)
-	defer response.Body.Close()
+	res, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
-	if response.StatusCode != http.StatusOK {
-		fmt.Println("Non-OK HTTP status:", response.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		fmt.Println("Non-OK HTTP status:", res.StatusCode)
 		return err
 	}
 
@@ -193,16 +202,19 @@ func (w *WfdbCapture) PutWFDB() error {
 	u, _ := json.Marshal(w)
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", WfdbUrl+w.CaptureID, body)
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	response, err := client.Do(req)
-	defer response.Body.Close()
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
-	if response.StatusCode != http.StatusOK {
-		fmt.Println("Non-OK HTTP status:", response.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		fmt.Println("Non-OK HTTP status:", res.StatusCode)
 		return err
 	}
 
@@ -213,16 +225,19 @@ func (w *CaptureFlow) PutFlow() error {
 	u, _ := json.Marshal(w)
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", WfApiUrl, body)
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	response, err := client.Do(req)
-	defer response.Body.Close()
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
-	if response.StatusCode != http.StatusOK {
-		fmt.Println("Non-OK HTTP status:", response.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		fmt.Println("Non-OK HTTP status:", res.StatusCode)
 		return err
 	}
 
@@ -249,34 +264,4 @@ func GetDateFromID(id string) string {
 	tsInt, _ := strconv.ParseInt(ts, 10, 64)
 	tsTime := time.Unix(0, tsInt*int64(time.Millisecond))
 	return strings.Split(tsTime.String(), " ")[0]
-}
-
-func delReq(ep string) error {
-	server := os.Getenv("MDB_URL")
-	req, err := http.NewRequest("DELETE", server+"/"+ep, nil)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	defer response.Body.Close()
-	if err != nil {
-		return err
-	}
-
-	if response.StatusCode != http.StatusOK {
-		fmt.Println("Non-OK HTTP status:", response.StatusCode)
-	}
-
-	return nil
-}
-
-func writeToLog(path string, line string) error {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		fmt.Println("Error opening file: ", err)
-	}
-	defer f.Close()
-
-	log.SetOutput(f)
-	log.Println(line)
-
-	return nil
 }

@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/pkg/workflow"
+	wf "github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/eclipse/paho.mqtt.golang"
 	"os"
 	"strings"
@@ -49,7 +49,7 @@ func (a *App) SubMQTT(c mqtt.Client) {
 		fmt.Printf("%s\n", "MQTT Subscription: kli/workflow/service/"+ep+"/#")
 	}
 
-	if token := a.Msg.Subscribe("workflow/state/capture/"+ep+"/#", byte(1), workflow.WorkflowState); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe("workflow/state/capture/"+ep+"/#", byte(1), wf.SetState); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
 		fmt.Printf("%s\n", "MQTT Subscription: workflow/state/capture/"+ep+"/#")
@@ -125,27 +125,10 @@ func (a *App) workflowMessage(c mqtt.Client, m mqtt.Message) {
 	if id != "false" {
 		switch mp.Action {
 		case "start":
-			go a.startFlow(mp, ep)
+			go wf.StartFlow(mp, ep, c)
 		case "stop":
-			go a.stopFlow(mp, ep)
+			go wf.StopFlow(mp, ep, c)
 		}
-	}
-}
-
-func (a *App) workflowState(c mqtt.Client, m mqtt.Message) {
-	cs := workflow.CaptureState{}
-	err := json.Unmarshal(m.Payload(), &cs)
-	fmt.Println("onMsg State:", cs)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-}
-
-func (a *App) Publish(topic string, message string) {
-	text := fmt.Sprintf(message)
-	//a.Msg.Publish(topic, byte(1), false, text)
-	if token := a.Msg.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
-		fmt.Printf("Publish message error: %s\n", token.Error())
 	}
 }
 
@@ -165,5 +148,13 @@ func (a *App) SendRespond(ep string, id string, m *MqttPayload) {
 	text := fmt.Sprintf(string(message))
 	if token := a.Msg.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
 		fmt.Printf("Send Respond error: %s\n", token.Error())
+	}
+}
+
+func Publish(topic string, message string, c mqtt.Client) {
+	text := fmt.Sprintf(message)
+	//a.Msg.Publish(topic, byte(1), false, text)
+	if token := c.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
+		fmt.Printf("Publish message error: %s\n", token.Error())
 	}
 }
