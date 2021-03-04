@@ -183,7 +183,7 @@ func (a *App) startExecMqttByID(ep string, id string) {
 	}
 
 	// <-- For Ingest capture only -- //
-	src, err := regexp.MatchString(`^(mltmain|mltbackup|maincap|backupcap)$`, id)
+	src, err := regexp.MatchString(`^(mltmain|mltbackup|maincap|backupcap)$`, ep)
 	if err != nil {
 		rp.Error = err
 		rp.Message = "Internal error"
@@ -206,7 +206,6 @@ func (a *App) startExecMqttByID(ep string, id string) {
 			switch v {
 			case "comment=ID":
 				args[k] = strings.Replace(args[k], "ID", cs.CaptureID, 1)
-				args[k] = cs.CaptureID
 			case "/capture/NAME.mp4":
 				args[k] = strings.Replace(args[k], "NAME", cs.CaptureID, 1)
 			}
