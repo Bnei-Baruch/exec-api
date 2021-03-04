@@ -124,7 +124,7 @@ func StopFlow(rp MqttWorkflow, src string, c mqtt.Client) {
 
 	StopName := cs.StopName
 
-	file, err := os.Open("/capture/" + rp.ID + ".mp4")
+	file, err := os.Open("/capture/" + cs.CaptureID + ".mp4")
 	if err != nil {
 		return
 	}
