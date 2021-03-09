@@ -166,7 +166,7 @@ func StopFlow(rp MqttWorkflow, src string, c mqtt.Client) {
 	cw.StopName = StopName
 
 	//Main Multi Capture
-	if src == "mltmain" {
+	if src == "mltmain" || src == "maincap" {
 		if cw.Line.ContentType == "LESSON_PART" {
 			cm.Part = strconv.Itoa(cw.Line.Part)
 			cm.LessonID = cw.Line.LessonID
@@ -174,12 +174,7 @@ func StopFlow(rp MqttWorkflow, src string, c mqtt.Client) {
 	}
 
 	//Backup Multi Capture
-	if src == "mltbackup" {
-		cs, err := GetCaptureState(src) //FIXME!!!
-		if err != nil {
-			fmt.Println("GetCaptureState Failed:", err)
-			return
-		}
+	if src == "mltbackup" || src == "backupcap" {
 		cw.Line = cs.Line
 		if cw.Line.ContentType == "LESSON_PART" {
 			StopName := StopName[:len(StopName)-2] + "full"

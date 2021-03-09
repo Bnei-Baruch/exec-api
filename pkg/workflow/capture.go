@@ -54,6 +54,15 @@ type CaptureState struct {
 	StartName string `json:"startname"`
 	StopName  string `json:"stopname"`
 	Line      Line   `json:"line"`
+	NumPrt    NumPrt `json:"numprt"`
+}
+
+type NumPrt struct {
+	Lesson  int `json:"LESSON_PART"`
+	Meal    int `json:"MEAL"`
+	Friends int `json:"FRIENDS_GATHERING"`
+	Unknown int `json:"UNKNOWN"`
+	Part    int `json:"part"`
 }
 
 type WfdbCapture struct {
