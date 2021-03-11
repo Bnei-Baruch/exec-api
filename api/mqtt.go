@@ -3,13 +3,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Bnei-Baruch/exec-api/common"
 	wf "github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/eclipse/paho.mqtt.golang"
 	"os"
 	"strings"
 )
-
-const RespondTopic = "exec/service/data/"
 
 type MqttPayload struct {
 	Action  string      `json:"action,omitempty"`
@@ -65,7 +64,6 @@ func (a *App) execMessage(c mqtt.Client, m mqtt.Message) {
 	id := "false"
 	s := strings.Split(m.Topic(), "/")
 	p := string(m.Payload())
-	ep := os.Getenv("MQTT_EP")
 
 	if s[0] == "kli" && len(s) == 5 {
 		id = s[4]
@@ -76,41 +74,41 @@ func (a *App) execMessage(c mqtt.Client, m mqtt.Message) {
 	if id == "false" {
 		switch p {
 		case "start":
-			go a.startExecMqtt(ep)
+			go a.startExecMqtt(p)
 		case "stop":
-			go a.stopExecMqtt(ep)
+			go a.stopExecMqtt(p)
 		case "status":
-			go a.execStatusMqtt(ep)
+			go a.execStatusMqtt(p)
 		}
 	}
 
 	if id != "false" {
 		switch p {
 		case "start":
-			go a.startExecMqttByID(ep, id)
+			go a.startExecMqttByID(p, id)
 		case "stop":
-			go a.stopExecMqttByID(ep, id)
+			go a.stopExecMqttByID(p, id)
 		case "status":
-			go a.execStatusMqttByID(ep, id)
+			go a.execStatusMqttByID(p, id)
 		case "cmdstat":
-			go a.cmdStatMqtt(ep, id)
+			go a.cmdStatMqtt(p, id)
 		case "progress":
-			go a.getProgressMqtt(ep, id)
+			go a.getProgressMqtt(p, id)
 		case "report":
-			go a.getReportMqtt(ep, id)
+			go a.getReportMqtt(p, id)
 		case "alive":
-			go a.isAliveMqtt(ep, id)
+			go a.isAliveMqtt(p, id)
 		}
 	}
 }
 
-func (a *App) SendRespond(ep string, id string, m *MqttPayload) {
+func (a *App) SendRespond(id string, m *MqttPayload) {
 	var topic string
 
 	if id == "false" {
-		topic = RespondTopic + ep
+		topic = common.RespondTopic + common.EP
 	} else {
-		topic = RespondTopic + ep + "/" + id
+		topic = common.RespondTopic + common.EP + "/" + id
 	}
 	message, err := json.Marshal(m)
 	if err != nil {

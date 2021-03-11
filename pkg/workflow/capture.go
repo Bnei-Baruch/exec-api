@@ -3,25 +3,13 @@ package workflow
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Bnei-Baruch/exec-api/common"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
-)
-
-var (
-	MltMain   = os.Getenv("MLT_MAIN")
-	MltBackup = os.Getenv("MLT_BACKUP")
-	MainCap   = os.Getenv("MAIN_CAP")
-	BackupCap = os.Getenv("BACKUP_CAP")
-
-	SdbUrl   = os.Getenv("SDB_URL")
-	WfApiUrl = os.Getenv("WFAPI_URL")
-	MdbUrl   = os.Getenv("MDB_URL")
-	WfdbUrl  = os.Getenv("WFDB_URL")
 )
 
 type MdbPayload struct {
@@ -135,7 +123,7 @@ func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
 	body := strings.NewReader(string(u))
 	fmt.Println("MDB Payload:", body)
-	req, err := http.NewRequest("POST", MdbUrl+ep, body)
+	req, err := http.NewRequest("POST", common.MdbUrl+ep, body)
 	if err != nil {
 		return err
 	}
@@ -156,7 +144,7 @@ func (m *MdbPayload) PostMDB(ep string) error {
 }
 
 func GetCaptureState(src string) (*CaptureState, error) {
-	req, err := http.NewRequest("GET", SdbUrl+src, nil)
+	req, err := http.NewRequest("GET", common.SdbUrl+src, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +171,7 @@ func GetCaptureState(src string) (*CaptureState, error) {
 }
 
 func (w *WfdbCapture) GetWFDB(id string) error {
-	req, err := http.NewRequest("GET", WfdbUrl+"/"+id, nil)
+	req, err := http.NewRequest("GET", common.WfdbUrl+"/"+id, nil)
 	if err != nil {
 		return err
 	}
@@ -211,7 +199,7 @@ func (w *WfdbCapture) GetWFDB(id string) error {
 func (w *WfdbCapture) PutWFDB() error {
 	u, _ := json.Marshal(w)
 	body := strings.NewReader(string(u))
-	req, err := http.NewRequest("PUT", WfdbUrl+w.CaptureID, body)
+	req, err := http.NewRequest("PUT", common.WfdbUrl+w.CaptureID, body)
 	if err != nil {
 		return err
 	}
@@ -234,7 +222,7 @@ func (w *WfdbCapture) PutWFDB() error {
 func (w *CaptureFlow) PutFlow() error {
 	u, _ := json.Marshal(w)
 	body := strings.NewReader(string(u))
-	req, err := http.NewRequest("PUT", WfApiUrl, body)
+	req, err := http.NewRequest("PUT", common.WfApiUrl, body)
 	if err != nil {
 		return err
 	}
@@ -257,13 +245,13 @@ func (w *CaptureFlow) PutFlow() error {
 func GetStationID(id string) string {
 	switch id {
 	case "mltmain":
-		return MltMain
+		return common.MltMain
 	case "mltbackup":
-		return MltBackup
+		return common.MltBackup
 	case "maincap":
-		return MainCap
+		return common.MainCap
 	case "backupcap":
-		return BackupCap
+		return common.BackupCap
 	}
 
 	return ""

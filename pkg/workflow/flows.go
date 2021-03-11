@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/Bnei-Baruch/exec-api/common"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io"
 	"os"
@@ -27,7 +28,6 @@ func MqttMessage(c mqtt.Client, m mqtt.Message) {
 	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
 	id := "false"
 	s := strings.Split(m.Topic(), "/")
-	ep := os.Getenv("MQTT_EP")
 
 	if s[0] == "kli" && len(s) == 5 {
 		id = s[4]
@@ -44,9 +44,9 @@ func MqttMessage(c mqtt.Client, m mqtt.Message) {
 	if id != "false" {
 		switch mp.Action {
 		case "start":
-			go StartFlow(mp, ep, c)
+			go StartFlow(mp, c)
 		case "stop":
-			go StopFlow(mp, ep, c)
+			go StopFlow(mp, c)
 		}
 	}
 }
@@ -59,8 +59,9 @@ func Publish(topic string, message string, c mqtt.Client) {
 	}
 }
 
-func StartFlow(rp MqttWorkflow, src string, c mqtt.Client) {
+func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 
+	src := common.EP
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
@@ -111,8 +112,9 @@ func StartFlow(rp MqttWorkflow, src string, c mqtt.Client) {
 	Publish("workflow/service/data/"+rp.Action, string(m), c)
 }
 
-func StopFlow(rp MqttWorkflow, src string, c mqtt.Client) {
+func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
+	src := common.EP
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")

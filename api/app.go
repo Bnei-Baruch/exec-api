@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/Bnei-Baruch/exec-api/common"
+	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/coreos/go-oidc"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/go-cmd/cmd"
@@ -10,9 +12,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/rs/zerolog/log"
 	"net/http"
-	"os"
-
-	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 )
 
 type App struct {
@@ -101,17 +100,12 @@ func (a *App) initializeRoutes() {
 }
 
 func (a *App) initMQTT() {
-	if os.Getenv("MQTT_URL") != "" {
-		server := os.Getenv("MQTT_URL")
-		username := os.Getenv("MQTT_USER")
-		password := os.Getenv("MQTT_PASS")
-		ep := os.Getenv("MQTT_EP")
-
+	if common.SERVER != "" {
 		opts := mqtt.NewClientOptions()
-		opts.AddBroker(fmt.Sprintf("ssl://%s", server))
-		opts.SetClientID(ep + "-exec_mqtt_client")
-		opts.SetUsername(username)
-		opts.SetPassword(password)
+		opts.AddBroker(fmt.Sprintf("ssl://%s", common.SERVER))
+		opts.SetClientID(common.EP + "-exec_mqtt_client")
+		opts.SetUsername(common.USERNAME)
+		opts.SetPassword(common.PASSWORD)
 		opts.SetAutoReconnect(true)
 		opts.SetOnConnectHandler(a.SubMQTT)
 		opts.SetConnectionLostHandler(a.LostMQTT)
