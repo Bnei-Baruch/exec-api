@@ -78,7 +78,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		Station:       GetStationID(src),
 		User:          "operator@dev.com",
 		FileName:      cs.StartName,
-		WorkflowID:    cs.CaptureID,
+		WorkflowID:    rp.ID,
 	}
 
 	err := cm.PostMDB("capture_start")
@@ -92,8 +92,8 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	ws := &Wfstatus{Capwf: false, Trimmed: false, Sirtutim: false}
 	cw := &WfdbCapture{
-		CaptureID: cs.CaptureID,
-		Date:      GetDateFromID(cs.CaptureID),
+		CaptureID: rp.ID,
+		Date:      GetDateFromID(rp.ID),
 		StartName: cs.StartName,
 		CapSrc:    src,
 		Wfstatus:  *ws,
@@ -128,8 +128,8 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	ws := &Wfstatus{Capwf: false, Trimmed: false, Sirtutim: false}
 	cw := &WfdbCapture{
-		CaptureID: cs.CaptureID,
-		Date:      GetDateFromID(cs.CaptureID),
+		CaptureID: rp.ID,
+		Date:      GetDateFromID(rp.ID),
 		StartName: cs.StartName,
 		CapSrc:    src,
 		Wfstatus:  *ws,
@@ -165,7 +165,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	StopName := cs.StopName
 
-	file, err := os.Open("/capture/" + cs.CaptureID + ".mp4")
+	file, err := os.Open("/capture/" + rp.ID + ".mp4")
 	if err != nil {
 		return
 	}
@@ -190,14 +190,14 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		Station:       GetStationID(src),
 		User:          "operator@dev.com",
 		FileName:      StopName,
-		WorkflowID:    cs.CaptureID,
+		WorkflowID:    rp.ID,
 		Size:          size,
 		Sha:           sha,
 		Part:          "false",
 	}
 
 	cw := &WfdbCapture{}
-	err = cw.GetWFDB(cs.CaptureID)
+	err = cw.GetWFDB(rp.ID)
 	if err != nil {
 		fmt.Println("WfdbRead Failed:", err)
 		return
@@ -243,8 +243,8 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		return
 	}
 
-	FullName := StopName + "_" + cs.CaptureID + ".mp4"
-	err = os.Rename("/capture/"+cs.CaptureID+".mp4", "/capture/"+FullName)
+	FullName := StopName + "_" + rp.ID + ".mp4"
+	err = os.Rename("/capture/"+rp.ID+".mp4", "/capture/"+FullName)
 	if err != nil {
 		return
 	}
@@ -253,7 +253,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		FileName:  FullName,
 		Source:    "ingest",
 		CapSrc:    rp.Source,
-		CaptureID: cs.CaptureID,
+		CaptureID: rp.ID,
 		Size:      size,
 		Sha:       sha,
 		Url:       "http://" + cm.Station + ":8081/get/" + FullName,
