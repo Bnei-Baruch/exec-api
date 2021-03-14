@@ -145,33 +145,6 @@ func (m *MdbPayload) PostMDB(ep string) error {
 	return nil
 }
 
-func GetCaptureState(src string) (*CaptureState, error) {
-	req, err := http.NewRequest("GET", common.SdbUrl+src, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	state := CaptureState{}
-	err = json.Unmarshal(body, &state)
-	if err != nil {
-		return nil, err
-	}
-
-	return &state, nil
-}
-
 func (w *WfdbCapture) GetWFDB(id string) error {
 	req, err := http.NewRequest("GET", common.WfdbUrl+"/"+id, nil)
 	if err != nil {
