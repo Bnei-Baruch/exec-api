@@ -73,22 +73,24 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		return
 	}
 
-	cm := &MdbPayload{
-		CaptureSource: src,
-		Station:       GetStationID(src),
-		User:          "operator@dev.com",
-		FileName:      cs.StartName,
-		WorkflowID:    rp.ID,
-	}
+	/*
+		cm := &MdbPayload{
+			CaptureSource: src,
+			Station:       GetStationID(src),
+			User:          "operator@dev.com",
+			FileName:      cs.StartName,
+			WorkflowID:    rp.ID,
+		}
 
-	err := cm.PostMDB("capture_start")
-	if err != nil {
-		rp.Error = err
-		rp.Message = "MDB Request Failed"
-		m, _ := json.Marshal(rp)
-		Publish("workflow/service/data/"+rp.Action, string(m), c)
-		return
-	}
+		err := cm.PostMDB("capture_start")
+		if err != nil {
+			rp.Error = err
+			rp.Message = "MDB Request Failed"
+			m, _ := json.Marshal(rp)
+			Publish("workflow/service/data/"+rp.Action, string(m), c)
+			return
+		}
+	*/
 
 	ws := &Wfstatus{Capwf: false, Trimmed: false, Sirtutim: false}
 	cw := &WfdbCapture{
@@ -99,7 +101,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		Wfstatus:  *ws,
 	}
 
-	err = cw.PutWFDB()
+	err := cw.PutWFDB()
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
@@ -238,10 +240,10 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		return
 	}
 
-	err = cm.PostMDB("capture_stop")
-	if err != nil {
-		return
-	}
+	//err = cm.PostMDB("capture_stop")
+	//if err != nil {
+	//	return
+	//}
 
 	FullName := StopName + "_" + rp.ID + ".mp4"
 	err = os.Rename("/capture/"+rp.ID+".mp4", "/capture/"+FullName)
@@ -252,7 +254,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	cf := CaptureFlow{
 		FileName:  FullName,
 		Source:    "ingest",
-		CapSrc:    rp.Source,
+		CapSrc:    src,
 		CaptureID: rp.ID,
 		Size:      size,
 		Sha:       sha,
