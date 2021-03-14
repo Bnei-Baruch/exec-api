@@ -169,11 +169,13 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	file, err := os.Open("/capture/" + rp.ID + ".mp4")
 	if err != nil {
+		fmt.Println("Error open file: ", rp.ID)
 		return
 	}
 
 	stat, err := file.Stat()
 	if err != nil {
+		fmt.Println("Error get stat file: ", rp.ID)
 		return
 	}
 

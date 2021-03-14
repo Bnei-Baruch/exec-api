@@ -192,8 +192,14 @@ func (a *App) startExecMqttByID(p string, id string) {
 	}
 
 	if src == true {
-
+		var ID string
 		cs := wf.GetState()
+		if common.EP == "mltmain" || common.EP == "maincap" {
+			ID = cs.CaptureID
+		}
+		if common.EP == "mltbackup" || common.EP == "backupcap" {
+			ID = cs.BackupID
+		}
 		if cs.CaptureID == "" {
 			rp.Error = fmt.Errorf("error")
 			rp.Message = "Internal error"
@@ -206,9 +212,9 @@ func (a *App) startExecMqttByID(p string, id string) {
 		for k, v := range args {
 			switch v {
 			case "comment=ID":
-				args[k] = strings.Replace(args[k], "ID", cs.CaptureID, 1)
+				args[k] = strings.Replace(args[k], "ID", ID, 1)
 			case "/capture/NAME.mp4":
-				args[k] = strings.Replace(args[k], "NAME", cs.CaptureID, 1)
+				args[k] = strings.Replace(args[k], "NAME", ID, 1)
 			}
 		}
 	}
