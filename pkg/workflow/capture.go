@@ -32,17 +32,19 @@ type Wfstatus struct {
 }
 
 type CaptureState struct {
+	Action    string `json:"action"`
+	BackupID  string `json:"backup_id"`
 	CaptureID string `json:"capture_id"`
 	Date      string `json:"date"`
-	LessonID  string `json:"lid"`
-	IsHag     bool   `json:"ishag"`
-	LineID    string `json:"lineid"`
+	IsRec     bool   `json:"isRec"`
+	IsHag     bool   `json:"isHag"`
+	LineID    string `json:"line_id"`
 	NextPart  bool   `json:"next_part"`
-	ReqDate   string `json:"reqdate"`
-	StartName string `json:"startname"`
-	StopName  string `json:"stopname"`
+	ReqDate   string `json:"req_date"`
+	StartName string `json:"start_name"`
+	StopName  string `json:"stop_name"`
 	Line      Line   `json:"line"`
-	NumPrt    NumPrt `json:"numprt"`
+	NumPrt    NumPrt `json:"num_prt"`
 }
 
 type NumPrt struct {
