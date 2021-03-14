@@ -182,7 +182,9 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	fmt.Println("stopFlow file size:", size)
 
 	time := stat.Sys().(*syscall.Stat_t)
-	ctime := time.Ctimespec.Nsec
+	//FIXME: WTF?
+	//ctime := time.Ctimespec.Nsec //OSX
+	ctime := time.Ctim.Nsec //Linux
 	fmt.Println("Creation time file:", ctime)
 
 	h := sha1.New()
