@@ -102,7 +102,7 @@ type CaptureFlow struct {
 var Data []byte
 
 func GetState() *CaptureState {
-	cs := &CaptureState{}
+	var cs *CaptureState
 	err := json.Unmarshal(Data, &cs)
 	if err != nil {
 		fmt.Println(err.Error())
