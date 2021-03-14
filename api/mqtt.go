@@ -36,19 +36,19 @@ func (a *App) SubMQTT(c mqtt.Client) {
 		fmt.Printf("%s\n", "MQTT Subscription: kli/exec/service/"+ep+"/#")
 	}
 
-	if token := a.Msg.Subscribe("workflow/service/"+ep+"/#", byte(1), wf.MqttMessage); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe("workflow/service/capture/"+ep, byte(1), wf.MqttMessage); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
 		fmt.Printf("%s\n", "MQTT Subscription: workflow/service/"+ep+"/#")
 	}
 
-	if token := a.Msg.Subscribe("kli/workflow/service/"+ep+"/#", byte(1), wf.MqttMessage); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe("kli/workflow/service/capture/"+ep, byte(1), wf.MqttMessage); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
 		fmt.Printf("%s\n", "MQTT Subscription: kli/workflow/service/"+ep+"/#")
 	}
 
-	if token := a.Msg.Subscribe("workflow/state/capture/"+ep+"/#", byte(1), wf.SetState); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe("workflow/state/capture/#", byte(1), wf.SetState); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
 		fmt.Printf("%s\n", "MQTT Subscription: workflow/state/capture/"+ep+"/#")
