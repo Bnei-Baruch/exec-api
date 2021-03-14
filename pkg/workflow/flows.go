@@ -45,6 +45,8 @@ func MqttMessage(c mqtt.Client, m mqtt.Message) {
 		switch mp.Action {
 		case "start":
 			go StartFlow(mp, c)
+		case "line":
+			go LineFlow(mp, c)
 		case "stop":
 			go StopFlow(mp, c)
 		}
@@ -98,6 +100,43 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 	}
 
 	err = cw.PutWFDB()
+	if err != nil {
+		rp.Error = err
+		rp.Message = "WFDB Request Failed"
+		m, _ := json.Marshal(rp)
+		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		return
+	}
+
+	rp.Message = "Success"
+	m, _ := json.Marshal(rp)
+
+	Publish("workflow/service/data/"+rp.Action, string(m), c)
+}
+
+func LineFlow(rp MqttWorkflow, c mqtt.Client) {
+
+	src := common.EP
+	cs := GetState()
+	if cs.CaptureID == "" {
+		rp.Error = fmt.Errorf("error")
+		rp.Message = "Internal error"
+		m, _ := json.Marshal(rp)
+		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		return
+	}
+
+	ws := &Wfstatus{Capwf: false, Trimmed: false, Sirtutim: false}
+	cw := &WfdbCapture{
+		CaptureID: cs.CaptureID,
+		Date:      GetDateFromID(cs.CaptureID),
+		StartName: cs.StartName,
+		CapSrc:    src,
+		Wfstatus:  *ws,
+		Line:      cs.Line,
+	}
+
+	err := cw.PutWFDB()
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
