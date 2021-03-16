@@ -6,7 +6,6 @@ import (
 	"github.com/Bnei-Baruch/exec-api/common"
 	wf "github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/eclipse/paho.mqtt.golang"
-	"os"
 	"strings"
 )
 
@@ -23,7 +22,7 @@ type MqttPayload struct {
 
 func (a *App) SubMQTT(c mqtt.Client) {
 	fmt.Println("- Connected to MQTT -")
-	ep := os.Getenv("MQTT_EP")
+	ep := common.EP
 	if token := a.Msg.Subscribe("exec/service/"+ep+"/#", byte(1), a.execMessage); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
@@ -48,7 +47,7 @@ func (a *App) SubMQTT(c mqtt.Client) {
 		fmt.Printf("%s\n", "MQTT Subscription: kli/workflow/service/capture/"+ep)
 	}
 
-	if token := a.Msg.Subscribe("workflow/state/capture/#", byte(1), wf.SetState); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe("workflow/state/capture/"+common.WFCAP, byte(1), wf.SetState); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
 		fmt.Printf("%s\n", "MQTT Subscription: workflow/state/capture/#")

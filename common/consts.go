@@ -19,4 +19,6 @@ var (
 	SERVER   = os.Getenv("MQTT_URL")
 	USERNAME = os.Getenv("MQTT_USER")
 	PASSWORD = os.Getenv("MQTT_PASS")
+
+	WFCAP = os.Getenv("WF_CAP")
 )
