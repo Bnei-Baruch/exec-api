@@ -219,7 +219,7 @@ func (w *CaptureFlow) PutFlow() error {
 
 func GetStationID(id string) string {
 	switch id {
-	case "mltmain":
+	case "mltcap":
 		return common.MltMain
 	case "mltbackup":
 		return common.MltBackup

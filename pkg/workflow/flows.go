@@ -183,8 +183,8 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	time := stat.Sys().(*syscall.Stat_t)
 	//FIXME: WTF?
-	//ctime := time.Ctimespec.Nsec //OSX
-	ctime := time.Ctim.Nsec //Linux
+	ctime := time.Ctimespec.Nsec //OSX
+	//ctime := time.Ctim.Nsec //Linux
 	fmt.Println("Creation time file:", ctime)
 
 	h := sha1.New()
@@ -218,7 +218,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	cw.StopName = StopName
 
 	//Main Multi Capture
-	if src == "mltmain" || src == "maincap" {
+	if src == "mltcap" || src == "maincap" {
 		if cw.Line.ContentType == "LESSON_PART" {
 			cm.Part = strconv.Itoa(cw.Line.Part)
 			cm.LessonID = cw.Line.LessonID

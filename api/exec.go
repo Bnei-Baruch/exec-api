@@ -184,7 +184,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 	}
 
 	// <-- For Ingest capture only -- //
-	src, err := regexp.MatchString(`^(mltmain|mltbackup|maincap|backupcap)$`, common.EP)
+	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap)$`, common.EP)
 	if err != nil {
 		rp.Error = err
 		rp.Message = "Internal error"
@@ -194,7 +194,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 	if src == true {
 		var ID string
 		cs := wf.GetState()
-		if common.EP == "mltmain" || common.EP == "maincap" {
+		if common.EP == "mltcap" || common.EP == "maincap" {
 			ID = cs.CaptureID
 		}
 		if common.EP == "mltbackup" || common.EP == "backupcap" {
