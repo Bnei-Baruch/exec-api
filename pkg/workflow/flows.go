@@ -228,7 +228,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	//Backup Multi Capture
 	if src == "mltbackup" || src == "backupcap" {
 		if cw.Line.ContentType == "LESSON_PART" {
-			StopName := StopName[:len(StopName)-2] + "full"
+			StopName = StopName[:len(StopName)-2] + "full"
 			cw.Line.ContentType = "FULL_LESSON"
 			cw.Line.Part = -1
 			cw.Line.LessonID = cs.Line.LessonID
