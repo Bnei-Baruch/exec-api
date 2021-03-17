@@ -124,7 +124,7 @@ func SetState(c mqtt.Client, m mqtt.Message) {
 
 func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
-	middleware.WriteToLog(ep, u)
+	middleware.WriteToLog(ep, string(u))
 	body := strings.NewReader(string(u))
 	fmt.Println("MDB Payload:", body)
 	req, err := http.NewRequest("POST", common.MdbUrl+ep, body)
@@ -175,7 +175,7 @@ func (w *WfdbCapture) GetWFDB(id string) error {
 
 func (w *WfdbCapture) PutWFDB(action string) error {
 	u, _ := json.Marshal(w)
-	middleware.WriteToLog(action, u)
+	middleware.WriteToLog(action, string(u))
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", common.WfdbUrl+w.CaptureID, body)
 	if err != nil {
@@ -199,7 +199,7 @@ func (w *WfdbCapture) PutWFDB(action string) error {
 
 func (w *CaptureFlow) PutFlow() error {
 	u, _ := json.Marshal(w)
-	middleware.WriteToLog("workflow", u)
+	middleware.WriteToLog("workflow", string(u))
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", common.WfApiUrl, body)
 	if err != nil {

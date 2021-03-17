@@ -52,7 +52,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	return h1(h2(h3(next)))
 }
 
-func WriteToLog(action string, msg []byte) {
+func WriteToLog(action string, msg string) {
 	t := time.Now()
 	rootPath := "/var/log/capture"
 	timePath := t.Format("2006") + "/" + t.Format("01") + "/" + t.Format("02")
@@ -66,6 +66,7 @@ func WriteToLog(action string, msg []byte) {
 		fmt.Println("Error opening file: ", err)
 	}
 	defer f.Close()
-	var wfLog = zerolog.New(f).With().Timestamp().Str("action", action).Logger()
-	wfLog.Info().RawJSON(action, msg)
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: f})
+	log.Info().Str("action", action).Msg(msg)
 }
