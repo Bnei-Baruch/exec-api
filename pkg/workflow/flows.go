@@ -100,7 +100,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		Wfstatus:  *ws,
 	}
 
-	err = cw.PutWFDB()
+	err = cw.PutWFDB(rp.Action)
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
@@ -137,7 +137,7 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 		Line:      cs.Line,
 	}
 
-	err := cw.PutWFDB()
+	err := cw.PutWFDB(rp.Action)
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
@@ -239,7 +239,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		}
 	}
 
-	err = cw.PutWFDB()
+	err = cw.PutWFDB(rp.Action)
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"

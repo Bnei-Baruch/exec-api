@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
+	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io/ioutil"
 	"net/http"
@@ -123,6 +124,7 @@ func SetState(c mqtt.Client, m mqtt.Message) {
 
 func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
+	middleware.WriteToLog(ep, string(u))
 	body := strings.NewReader(string(u))
 	fmt.Println("MDB Payload:", body)
 	req, err := http.NewRequest("POST", common.MdbUrl+ep, body)
@@ -171,8 +173,9 @@ func (w *WfdbCapture) GetWFDB(id string) error {
 	return nil
 }
 
-func (w *WfdbCapture) PutWFDB() error {
+func (w *WfdbCapture) PutWFDB(action string) error {
 	u, _ := json.Marshal(w)
+	middleware.WriteToLog(action, string(u))
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", common.WfdbUrl+w.CaptureID, body)
 	if err != nil {
@@ -196,6 +199,7 @@ func (w *WfdbCapture) PutWFDB() error {
 
 func (w *CaptureFlow) PutFlow() error {
 	u, _ := json.Marshal(w)
+	middleware.WriteToLog("workflow", string(u))
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", common.WfApiUrl, body)
 	if err != nil {
