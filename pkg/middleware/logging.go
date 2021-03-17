@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -53,9 +52,8 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	return h1(h2(h3(next)))
 }
 
-func WriteToLog(action string, json string) {
+func WriteToLog(action string, msg []byte) {
 	t := time.Now()
-	msg, _ := strconv.Unquote(json)
 	rootPath := "/var/log/capture"
 	timePath := t.Format("2006") + "/" + t.Format("01") + "/" + t.Format("02")
 	fileName := action + "_" + t.Format("15-04-05") + ".log"
@@ -69,5 +67,5 @@ func WriteToLog(action string, json string) {
 	}
 	defer f.Close()
 	var wfLog = zerolog.New(f).With().Timestamp().Str("action", action).Logger()
-	wfLog.Info().Msg(msg)
+	wfLog.Info().RawJSON(action, msg)
 }
