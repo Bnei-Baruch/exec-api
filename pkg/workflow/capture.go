@@ -74,6 +74,7 @@ type Line struct {
 	AutoName       string   `json:"auto_name"`
 	CaptureDate    string   `json:"capture_date"`
 	CollectionType string   `json:"collection_type"`
+	CollectionUID  string   `json:"collection_uid,omitempty"`
 	ContentType    string   `json:"content_type"`
 	FinalName      string   `json:"final_name"`
 	HasTranslation bool     `json:"has_translation"`
