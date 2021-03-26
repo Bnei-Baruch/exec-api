@@ -231,7 +231,6 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 			StopName = StopName[:len(StopName)-2] + "full"
 			cw.Line.ContentType = "FULL_LESSON"
 			cw.Line.Part = -1
-			cw.Line.LessonID = cs.Line.LessonID
 			cw.Line.FinalName = StopName
 			cw.StopName = StopName
 			cm.Part = "full"
