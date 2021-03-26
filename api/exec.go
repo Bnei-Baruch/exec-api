@@ -183,6 +183,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 		a.Cmd = make(map[string]*cmd.Cmd)
 	}
 
+	fmt.Println("Start Exec: ", p)
 	// <-- For Ingest capture only -- //
 	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap)$`, common.EP)
 	if err != nil {
@@ -194,6 +195,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 	if src == true {
 		var ID string
 		cs := wf.GetState()
+		fmt.Println("State Exec: ", cs)
 		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" {
 			ID = cs.CaptureID
 		}
@@ -215,6 +217,9 @@ func (a *App) startExecMqttByID(p string, id string) {
 				args[k] = strings.Replace(args[k], "ID", ID, 1)
 			case "/capture/NAME.mp4":
 				args[k] = strings.Replace(args[k], "NAME", ID, 1)
+			case "/opt/backup/NAME.mp4":
+				args[k] = "/opt/backup/" + ID + ".mp4"
+
 			}
 		}
 	}
