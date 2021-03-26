@@ -65,6 +65,10 @@ func Publish(topic string, message string, c mqtt.Client) {
 func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	src := common.EP
+	//TODO: Flow for archive capture
+	if src == "archcap" {
+		return
+	}
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
@@ -118,6 +122,10 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	src := common.EP
+	//TODO: Flow for archive capture
+	if src == "archcap" {
+		return
+	}
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
@@ -155,6 +163,10 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	src := common.EP
+	//TODO: Flow for archive capture
+	if src == "archcap" {
+		return
+	}
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
