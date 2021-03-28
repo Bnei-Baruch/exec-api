@@ -7,6 +7,7 @@ var (
 	MltBackup = os.Getenv("MLT_BACKUP")
 	MainCap   = os.Getenv("MAIN_CAP")
 	BackupCap = os.Getenv("BACKUP_CAP")
+	ArchCap   = os.Getenv("ARCH_CAP")
 
 	SdbUrl   = os.Getenv("SDB_URL")
 	WfApiUrl = os.Getenv("WFAPI_URL")

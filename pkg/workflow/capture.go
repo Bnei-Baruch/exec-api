@@ -232,6 +232,8 @@ func GetStationID(id string) string {
 		return common.MainCap
 	case "backupcap":
 		return common.BackupCap
+	case "archcap":
+		return common.ArchCap
 	}
 
 	return ""
