@@ -149,7 +149,7 @@ func (m *MdbPayload) PostMDB(ep string) error {
 }
 
 func (w *WfdbCapture) GetWFDB(id string) error {
-	req, err := http.NewRequest("GET", common.WfdbUrl+"/"+id, nil)
+	req, err := http.NewRequest("GET", common.WfdbUrl+"/ingest/"+id, nil)
 	if err != nil {
 		return err
 	}
@@ -174,11 +174,11 @@ func (w *WfdbCapture) GetWFDB(id string) error {
 	return nil
 }
 
-func (w *WfdbCapture) PutWFDB(action string) error {
+func (w *WfdbCapture) PutWFDB(action string, ep string) error {
 	u, _ := json.Marshal(w)
 	middleware.WriteToLog(action, string(u))
 	body := strings.NewReader(string(u))
-	req, err := http.NewRequest("PUT", common.WfdbUrl+w.CaptureID, body)
+	req, err := http.NewRequest("PUT", common.WfdbUrl+ep+w.CaptureID, body)
 	if err != nil {
 		return err
 	}

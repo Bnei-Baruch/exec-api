@@ -65,7 +65,6 @@ func Publish(topic string, message string, c mqtt.Client) {
 func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	src := common.EP
-	//TODO: Flow for archive capture
 	if src == "archcap" {
 		return
 	}
@@ -104,7 +103,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		Wfstatus:  *ws,
 	}
 
-	err = cw.PutWFDB(rp.Action)
+	err = cw.PutWFDB(rp.Action, "/ingest/")
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
@@ -122,7 +121,6 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	src := common.EP
-	//TODO: Flow for archive capture
 	if src == "archcap" {
 		return
 	}
@@ -145,7 +143,7 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 		Line:      cs.Line,
 	}
 
-	err := cw.PutWFDB(rp.Action)
+	err := cw.PutWFDB(rp.Action, "/ingest/")
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
@@ -163,10 +161,8 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	src := common.EP
-	//TODO: Flow for archive capture
-	if src == "archcap" {
-		return
-	}
+	ep := "/ingest/"
+
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
@@ -237,6 +233,15 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		}
 	}
 
+	//Archive Source Capture
+	if src == "archcap" {
+		if cw.Line.ContentType == "LESSON_PART" {
+			cm.Part = strconv.Itoa(cw.Line.Part)
+			cm.LessonID = cw.Line.LessonID
+		}
+		ep = "/capture/"
+	}
+
 	//Backup Multi Capture
 	if src == "mltbackup" || src == "backupcap" {
 		if cw.Line.ContentType == "LESSON_PART" {
@@ -250,7 +255,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		}
 	}
 
-	err = cw.PutWFDB(rp.Action)
+	err = cw.PutWFDB(rp.Action, ep)
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
@@ -279,7 +284,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		CaptureID: rp.ID,
 		Size:      size,
 		Sha:       sha,
-		Url:       "http://" + cm.Station + ":8081/get/" + FullName,
+		Url:       "http://" + cm.Station + ":8080/get/" + FullName,
 	}
 
 	err = cf.PutFlow()
