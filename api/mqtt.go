@@ -22,35 +22,34 @@ type MqttPayload struct {
 
 func (a *App) SubMQTT(c mqtt.Client) {
 	fmt.Println("- Connected to MQTT -")
-	ep := common.EP
-	if token := a.Msg.Subscribe("exec/service/"+ep+"/#", byte(2), a.execMessage); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.ServiceTopic, byte(2), a.execMessage); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: exec/service/"+ep+"/#")
+		fmt.Printf("%s\n", "MQTT Subscription: "+common.ServiceTopic)
 	}
 
-	if token := a.Msg.Subscribe("kli/exec/service/"+ep+"/#", byte(2), a.execMessage); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.ExtPrefix+common.ServiceTopic, byte(2), a.execMessage); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: kli/exec/service/"+ep+"/#")
+		fmt.Printf("%s\n", "MQTT Subscription: "+common.ExtPrefix+common.ServiceTopic)
 	}
 
-	if token := a.Msg.Subscribe("workflow/service/capture/"+ep, byte(2), wf.MqttMessage); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.WorkflowTopic, byte(2), wf.MqttMessage); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: workflow/service/capture/"+ep)
+		fmt.Printf("%s\n", "MQTT Subscription: "+common.WorkflowTopic)
 	}
 
-	if token := a.Msg.Subscribe("kli/workflow/service/capture/"+ep, byte(2), wf.MqttMessage); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.ExtPrefix+common.WorkflowTopic, byte(2), wf.MqttMessage); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: kli/workflow/service/capture/"+ep)
+		fmt.Printf("%s\n", "MQTT Subscription: "+common.ExtPrefix+common.WorkflowTopic)
 	}
 
-	if token := a.Msg.Subscribe("workflow/state/capture/"+common.WFCAP, byte(2), wf.SetState); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.StateTopic, byte(2), wf.SetState); token.Wait() && token.Error() != nil {
 		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: workflow/state/capture/#")
+		fmt.Printf("%s\n", "MQTT Subscription: "+common.StateTopic)
 	}
 }
 
@@ -105,9 +104,9 @@ func (a *App) SendRespond(id string, m *MqttPayload) {
 	var topic string
 
 	if id == "false" {
-		topic = common.RespondTopic + common.EP
+		topic = common.ServiceDataTopic + common.EP
 	} else {
-		topic = common.RespondTopic + common.EP + "/" + id
+		topic = common.ServiceDataTopic + common.EP + "/" + id
 	}
 	message, err := json.Marshal(m)
 	if err != nil {

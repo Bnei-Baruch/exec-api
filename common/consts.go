@@ -2,8 +2,6 @@ package common
 
 import "os"
 
-const RespondTopic = "exec/service/data/"
-
 var (
 	MltMain   = os.Getenv("MLT_MAIN")
 	MltBackup = os.Getenv("MLT_BACKUP")
@@ -21,4 +19,15 @@ var (
 	PASSWORD = os.Getenv("MQTT_PASS")
 
 	WFCAP = os.Getenv("WF_CAP")
+
+	ServiceTopic  = "exec/service/" + EP + "/#"
+	WorkflowTopic = "workflow/service/capture/" + EP
+	StateTopic    = "workflow/state/capture/" + WFCAP
+)
+
+const (
+	ExtPrefix         = "kli/"
+	ServiceDataTopic  = "exec/service/data/"
+	WorkflowDataTopic = "workflow/service/data/"
+	CapturedPath      = "/opt/backup/"
 )

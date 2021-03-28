@@ -74,7 +74,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Internal error"
 		m, _ := json.Marshal(rp)
-		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 		return
 	}
 
@@ -91,7 +91,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = err
 		rp.Message = "MDB Request Failed"
 		m, _ := json.Marshal(rp)
-		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 		return
 	}
 
@@ -109,14 +109,14 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
-		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 		return
 	}
 
 	rp.Message = "Success"
 	m, _ := json.Marshal(rp)
 
-	Publish("workflow/service/data/"+rp.Action, string(m), c)
+	Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 }
 
 func LineFlow(rp MqttWorkflow, c mqtt.Client) {
@@ -131,7 +131,7 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Internal error"
 		m, _ := json.Marshal(rp)
-		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 		return
 	}
 
@@ -150,14 +150,14 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
-		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 		return
 	}
 
 	rp.Message = "Success"
 	m, _ := json.Marshal(rp)
 
-	Publish("workflow/service/data/"+rp.Action, string(m), c)
+	Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 }
 
 func StopFlow(rp MqttWorkflow, c mqtt.Client) {
@@ -172,13 +172,13 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Internal error"
 		m, _ := json.Marshal(rp)
-		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 		return
 	}
 
 	StopName := cs.StopName
 
-	file, err := os.Open("/capture/" + rp.ID + ".mp4")
+	file, err := os.Open(common.CapturedPath + rp.ID + ".mp4")
 	if err != nil {
 		fmt.Println("Error open file: ", rp.ID)
 		return
@@ -255,7 +255,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
-		Publish("workflow/service/data/"+rp.Action, string(m), c)
+		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 		return
 	}
 
@@ -266,7 +266,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	}
 
 	FullName := StopName + "_" + rp.ID + ".mp4"
-	err = os.Rename("/capture/"+rp.ID+".mp4", "/capture/"+FullName)
+	err = os.Rename(common.CapturedPath+rp.ID+".mp4", common.CapturedPath+FullName)
 	if err != nil {
 		fmt.Println("Filed to rename file: ", err)
 		return
@@ -291,5 +291,5 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	rp.Message = "Success"
 	m, _ := json.Marshal(rp)
 
-	Publish("workflow/service/data/"+rp.Action, string(m), c)
+	Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
 }

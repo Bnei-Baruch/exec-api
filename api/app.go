@@ -97,6 +97,7 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/{ep}/progress/{id}", a.getProgress).Methods("GET")
 	a.Router.HandleFunc("/{ep}/report/{id}", a.getReport).Methods("GET")
 	a.Router.HandleFunc("/{ep}/alive/{id}", a.isAlive).Methods("GET")
+	a.Router.HandleFunc("/get/{file}", a.getFile).Methods("GET")
 }
 
 func (a *App) initMQTT() {

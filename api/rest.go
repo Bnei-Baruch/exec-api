@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/httputil"
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/go-cmd/cmd"
@@ -23,6 +24,14 @@ func (a *App) getData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.RespondSuccess(w)
+}
+
+func (a *App) getFile(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	file := vars["file"]
+
+	http.ServeFile(w, r, common.CapturedPath+file)
 }
 
 func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {
