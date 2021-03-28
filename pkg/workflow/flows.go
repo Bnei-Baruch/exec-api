@@ -173,6 +173,9 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	}
 
 	StopName := cs.StopName
+	if src == "archcap" {
+		StopName = strings.Replace(StopName, "_o_", "_s_", 1)
+	}
 
 	file, err := os.Open(common.CapturedPath + rp.ID + ".mp4")
 	if err != nil {
@@ -264,10 +267,12 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		return
 	}
 
-	err = cm.PostMDB("capture_stop")
-	if err != nil {
-		fmt.Println("MDB capture_stop filed: ", err)
-		return
+	if src != "archcap" {
+		err = cm.PostMDB("capture_stop")
+		if err != nil {
+			fmt.Println("MDB capture_stop filed: ", err)
+			return
+		}
 	}
 
 	FullName := StopName + "_" + rp.ID + ".mp4"
