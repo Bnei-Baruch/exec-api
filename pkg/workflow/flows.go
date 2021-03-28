@@ -238,6 +238,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	//Archive Source Capture
 	if src == "archcap" {
+		cw.CapSrc = "archcap"
 		if cw.Line.ContentType == "LESSON_PART" {
 			cm.Part = strconv.Itoa(cw.Line.Part)
 			cm.LessonID = cw.Line.LessonID
