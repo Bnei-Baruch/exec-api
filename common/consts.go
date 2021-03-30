@@ -19,6 +19,9 @@ var (
 	USERNAME = os.Getenv("MQTT_USER")
 	PASSWORD = os.Getenv("MQTT_PASS")
 
+	CapPath = os.Getenv("CAP_PATH")
+	LogPath = os.Getenv("LOG_PATH")
+
 	WFCAP = os.Getenv("WF_CAP")
 
 	ServiceTopic  = "exec/service/" + EP + "/#"
@@ -30,5 +33,4 @@ const (
 	ExtPrefix         = "kli/"
 	ServiceDataTopic  = "exec/service/data/"
 	WorkflowDataTopic = "workflow/service/data/"
-	CapturedPath      = "/opt/backup/"
 )

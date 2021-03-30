@@ -177,7 +177,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		StopName = strings.Replace(StopName, "_o_", "_s_", 1)
 	}
 
-	file, err := os.Open(common.CapturedPath + rp.ID + ".mp4")
+	file, err := os.Open(common.CapPath + rp.ID + ".mp4")
 	if err != nil {
 		fmt.Println("Error open file: ", rp.ID)
 		return
@@ -277,7 +277,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	}
 
 	FullName := StopName + "_" + rp.ID + ".mp4"
-	err = os.Rename(common.CapturedPath+rp.ID+".mp4", common.CapturedPath+FullName)
+	err = os.Rename(common.CapPath+rp.ID+".mp4", common.CapPath+FullName)
 	if err != nil {
 		fmt.Println("Filed to rename file: ", err)
 		return

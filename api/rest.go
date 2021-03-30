@@ -31,7 +31,7 @@ func (a *App) getFile(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	file := vars["file"]
 
-	http.ServeFile(w, r, common.CapturedPath+file)
+	http.ServeFile(w, r, common.CapPath+file)
 }
 
 func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {

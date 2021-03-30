@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/Bnei-Baruch/exec-api/common"
 	"net/http"
 	"os"
 	"strings"
@@ -54,13 +55,15 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 func WriteToLog(action string, msg string) {
 	t := time.Now()
-	rootPath := "/var/log/capture"
-	timePath := t.Format("2006") + "/" + t.Format("01") + "/" + t.Format("02")
-	fileName := action + "_" + t.Format("15-04-05") + ".log"
-	logPath := rootPath + "/" + timePath + "/" + fileName
-	if _, err := os.Stat(rootPath + "/" + timePath); os.IsNotExist(err) {
-		os.MkdirAll(rootPath+"/"+timePath, os.ModePerm)
-	}
+	rootPath := common.LogPath
+	//timePath := t.Format("2006") + "/" + t.Format("01") + "/" + t.Format("02")
+	//fileName := action + "_" + t.Format("15-04-05") + ".log"
+	//logPath := rootPath + "/" + timePath + "/" + fileName
+	//if _, err := os.Stat(rootPath + "/" + timePath); os.IsNotExist(err) {
+	//	os.MkdirAll(rootPath+"/"+timePath, os.ModePerm)
+	//}
+	ts := t.Format("2006") + "-" + t.Format("01") + "-" + t.Format("02")
+	logPath := rootPath + "/" + ts + "_wf.log"
 	f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
