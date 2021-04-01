@@ -64,12 +64,17 @@ func WriteToLog(action string, msg string) {
 	//}
 	ts := t.Format("2006") + "-" + t.Format("01") + "-" + t.Format("02")
 	logPath := rootPath + "/" + ts + "_wf.log"
-	f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 	}
-	defer f.Close()
+	defer file.Close()
 
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: f})
+	wl := zerolog.ConsoleWriter{
+		Out:        file,
+		TimeFormat: time.RFC3339Nano,
+		PartsOrder: []string{"time", "action", "message"},
+	}
+	log.Logger = log.Output(wl)
 	log.Info().Str("action", action).Msg(msg)
 }
