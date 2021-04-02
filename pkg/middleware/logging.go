@@ -3,8 +3,10 @@ package middleware
 import (
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
+	"io"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -12,7 +14,20 @@ import (
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+type Config struct {
+	ConsoleLoggingEnabled bool
+	EncodeLogsAsJson      bool
+	FileLoggingEnabled    bool
+	Directory             string
+	Filename              string
+	MaxSize               int
+	MaxBackups            int
+	MaxAge                int
+	LocalTime             bool
+}
 
 var requestLog = zerolog.New(os.Stdout).With().Timestamp().Caller().Stack().Logger()
 
@@ -53,28 +68,46 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	return h1(h2(h3(next)))
 }
 
-func WriteToLog(action string, msg string) {
-	t := time.Now()
-	rootPath := common.LogPath
-	//timePath := t.Format("2006") + "/" + t.Format("01") + "/" + t.Format("02")
-	//fileName := action + "_" + t.Format("15-04-05") + ".log"
-	//logPath := rootPath + "/" + timePath + "/" + fileName
-	//if _, err := os.Stat(rootPath + "/" + timePath); os.IsNotExist(err) {
-	//	os.MkdirAll(rootPath+"/"+timePath, os.ModePerm)
-	//}
-	ts := t.Format("2006") + "-" + t.Format("01") + "-" + t.Format("02")
-	logPath := rootPath + "/" + ts + "_wf.log"
-	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		fmt.Println("Error opening file: ", err)
+func InitLog() {
+	c := Config{
+		ConsoleLoggingEnabled: false,
+		FileLoggingEnabled:    true,
+		EncodeLogsAsJson:      true,
+		LocalTime:             true,
+		Directory:             common.LogPath,
+		Filename:              "latest.log",
+		MaxSize:               1000,
+		MaxBackups:            1000,
+		MaxAge:                1,
 	}
-	defer file.Close()
 
-	wl := zerolog.ConsoleWriter{
-		Out:        file,
-		TimeFormat: time.RFC3339Nano,
-		PartsOrder: []string{"time", "action", "message"},
+	var writers []io.Writer
+
+	if c.ConsoleLoggingEnabled {
+		writers = append(writers, zerolog.ConsoleWriter{Out: os.Stderr})
 	}
-	log.Logger = log.Output(wl)
-	log.Info().Str("action", action).Msg(msg)
+	if c.FileLoggingEnabled {
+		writers = append(writers, newRollingFile(c))
+	}
+	mw := io.MultiWriter(writers...)
+
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	//zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.MessageFieldName = "msg"
+	log.Logger = zerolog.New(mw).With().Timestamp().Logger()
+}
+
+func newRollingFile(c Config) io.Writer {
+	if err := os.MkdirAll(c.Directory, 0744); err != nil {
+		log.Error().Err(err).Str("path", c.Directory).Msg("can't create log directory")
+		return nil
+	}
+
+	return &lumberjack.Logger{
+		Filename:   path.Join(c.Directory, c.Filename),
+		MaxBackups: c.MaxBackups,
+		MaxSize:    c.MaxSize,
+		MaxAge:     c.MaxAge,
+		LocalTime:  c.LocalTime,
+	}
 }

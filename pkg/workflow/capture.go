@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
-	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -107,9 +107,10 @@ func GetState() *CaptureState {
 	var cs *CaptureState
 	err := json.Unmarshal(Data, &cs)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error().Str("source", "CAP").Err(err).Msg("get state")
 	}
-	fmt.Println("GetState:", cs)
+	u, _ := json.Marshal(cs)
+	log.Debug().Str("source", "CAP").RawJSON("json", u).Msg("get state")
 	return cs
 }
 
@@ -117,17 +118,17 @@ func SetState(c mqtt.Client, m mqtt.Message) {
 	cs := &CaptureState{}
 	err := json.Unmarshal(m.Payload(), &cs)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error().Str("source", "CAP").Err(err).Msg("get state")
 	}
-	fmt.Println("SetState:", cs)
+	u, _ := json.Marshal(cs)
+	log.Debug().Str("source", "CAP").RawJSON("json", u).Msg("set state")
 	Data = m.Payload()
 }
 
 func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
-	middleware.WriteToLog(ep, string(u))
+	log.Info().Str("source", "WF").Str("action", ep).RawJSON("json", u).Msg("post to MDB")
 	body := strings.NewReader(string(u))
-	fmt.Println("MDB Payload:", body)
 	req, err := http.NewRequest("POST", common.MdbUrl+ep, body)
 	if err != nil {
 		return err
@@ -141,7 +142,7 @@ func (m *MdbPayload) PostMDB(ep string) error {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		fmt.Println("Non-OK HTTP status:", res.StatusCode)
+		err = fmt.Errorf("bad status code: %s", strconv.Itoa(res.StatusCode))
 		return err
 	}
 
@@ -166,6 +167,7 @@ func (w *WfdbCapture) GetWFDB(id string) error {
 		return err
 	}
 
+	log.Debug().Str("source", "CAP").RawJSON("json", body).Msg("get WFDB")
 	err = json.Unmarshal(body, &w)
 	if err != nil {
 		return err
@@ -176,7 +178,7 @@ func (w *WfdbCapture) GetWFDB(id string) error {
 
 func (w *WfdbCapture) PutWFDB(action string, ep string) error {
 	u, _ := json.Marshal(w)
-	middleware.WriteToLog(action, string(u))
+	log.Info().Str("source", "WF").Str("action", action).RawJSON("json", u).Msg("put to WFDB")
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", common.WfdbUrl+ep+w.CaptureID, body)
 	if err != nil {
@@ -191,7 +193,7 @@ func (w *WfdbCapture) PutWFDB(action string, ep string) error {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		fmt.Println("Non-OK HTTP status:", res.StatusCode)
+		err = fmt.Errorf("bad status code: %s", strconv.Itoa(res.StatusCode))
 		return err
 	}
 
@@ -200,7 +202,7 @@ func (w *WfdbCapture) PutWFDB(action string, ep string) error {
 
 func (w *CaptureFlow) PutFlow() error {
 	u, _ := json.Marshal(w)
-	middleware.WriteToLog("workflow", string(u))
+	log.Info().Str("source", "WF").Str("action", "workflow").RawJSON("json", u).Msg("send to workflow")
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", common.WfApiUrl, body)
 	if err != nil {
@@ -215,7 +217,7 @@ func (w *CaptureFlow) PutFlow() error {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		fmt.Println("Non-OK HTTP status:", res.StatusCode)
+		err = fmt.Errorf("bad status code: %s", strconv.Itoa(res.StatusCode))
 		return err
 	}
 

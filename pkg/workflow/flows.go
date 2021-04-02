@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"strconv"
@@ -26,7 +27,7 @@ type MqttWorkflow struct {
 }
 
 func MqttMessage(c mqtt.Client, m mqtt.Message) {
-	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
+	log.Debug().Str("source", "MQTT").RawJSON("json", m.Payload()).Msg("MqttMessage: Topic - " + m.Topic())
 	id := "false"
 	s := strings.Split(m.Topic(), "/")
 
@@ -39,7 +40,7 @@ func MqttMessage(c mqtt.Client, m mqtt.Message) {
 	mp := MqttWorkflow{}
 	err := json.Unmarshal(m.Payload(), &mp)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error().Str("source", "MQTT").Err(err).Msg("Unmarshal")
 	}
 
 	if id != "false" {
@@ -56,9 +57,9 @@ func MqttMessage(c mqtt.Client, m mqtt.Message) {
 
 func Publish(topic string, message string, c mqtt.Client) {
 	text := fmt.Sprintf(message)
-	//a.Msg.Publish(topic, byte(1), false, text)
+	log.Debug().Str("source", "MQTT").Str("json", message).Msg("Publish: Topic - " + topic)
 	if token := c.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
-		fmt.Printf("Publish message error: %s\n", token.Error())
+		log.Error().Str("source", "MQTT").Err(token.Error()).Msg("Publish: Topic - " + topic)
 	}
 }
 
@@ -74,6 +75,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
+		log.Error().Str("source", "CAP").Err(rp.Error).Msg("StartFlow: CaptureID is empty")
 		rp.Message = "Internal error"
 		m, _ := json.Marshal(rp)
 		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
@@ -90,6 +92,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	err := cm.PostMDB("capture_start")
 	if err != nil {
+		log.Error().Str("source", "CAP").Err(err).Msg("StartFlow: PostMDB")
 		rp.Error = err
 		rp.Message = "MDB Request Failed"
 		m, _ := json.Marshal(rp)
@@ -108,6 +111,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	err = cw.PutWFDB(rp.Action, ep)
 	if err != nil {
+		log.Error().Str("source", "CAP").Err(err).Msg("StartFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
@@ -133,6 +137,7 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
+		log.Error().Str("source", "CAP").Err(rp.Error).Msg("LineFlow: CaptureID is empty")
 		rp.Message = "Internal error"
 		m, _ := json.Marshal(rp)
 		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
@@ -151,6 +156,7 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	err := cw.PutWFDB(rp.Action, ep)
 	if err != nil {
+		log.Error().Str("source", "CAP").Err(err).Msg("LineFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
@@ -172,6 +178,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
+		log.Error().Str("source", "CAP").Err(rp.Error).Msg("StopFlow: CaptureID is empty")
 		rp.Message = "Internal error"
 		m, _ := json.Marshal(rp)
 		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
@@ -185,32 +192,32 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	file, err := os.Open(common.CapPath + rp.ID + ".mp4")
 	if err != nil {
-		fmt.Println("Error open file: ", rp.ID)
+		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: Error open file")
 		return
 	}
 
 	stat, err := file.Stat()
 	if err != nil {
-		fmt.Println("Error get stat file: ", rp.ID)
+		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: Error get stat file")
 		return
 	}
 
 	size := stat.Size()
-	fmt.Println("stopFlow file size:", size)
+	log.Debug().Str("source", "CAP").Msgf("stopFlow file size: ", size)
 
 	time := stat.Sys().(*syscall.Stat_t)
 	//FIXME: WTF?
 	ctime := time.Ctimespec.Nsec //OSX
 	//ctime := time.Ctim.Nsec //Linux
-	fmt.Println("Creation time file:", ctime)
+	log.Debug().Str("source", "CAP").Msgf("Creation time file: ", ctime)
 
 	h := sha1.New()
 	if _, err = io.Copy(h, file); err != nil {
-		fmt.Println("Filed to get sha1: ", file)
+		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: Filed to get sha1")
 		return
 	}
 	sha := hex.EncodeToString(h.Sum(nil))
-	fmt.Println("stopFlow file sha1:", sha)
+	log.Debug().Str("source", "CAP").Msgf("stopFlow file sha1: ", sha)
 
 	cm := &MdbPayload{
 		CaptureSource: src,
@@ -227,7 +234,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	cw := &WfdbCapture{}
 	err = cw.GetWFDB(rp.ID)
 	if err != nil {
-		fmt.Println("WfdbRead Failed:", err)
+		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: GetWFDB")
 		return
 	}
 
@@ -267,6 +274,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	err = cw.PutWFDB(rp.Action, ep)
 	if err != nil {
+		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
 		m, _ := json.Marshal(rp)
@@ -276,14 +284,14 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	err = cm.PostMDB("capture_stop")
 	if err != nil {
-		fmt.Println("MDB capture_stop filed: ", err)
+		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: PostMDB")
 		return
 	}
 
 	FullName := StopName + "_" + rp.ID + ".mp4"
 	err = os.Rename(common.CapPath+rp.ID+".mp4", common.CapPath+FullName)
 	if err != nil {
-		fmt.Println("Filed to rename file: ", err)
+		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: failed to rename file")
 		return
 	}
 
@@ -299,7 +307,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	err = cf.PutFlow()
 	if err != nil {
-		fmt.Println("Filed send file to WF Server: ", err)
+		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: PutFlow")
 		return
 	}
 

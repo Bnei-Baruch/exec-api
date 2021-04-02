@@ -23,8 +23,8 @@ type App struct {
 }
 
 func (a *App) Initialize(accountsUrl string, skipAuth bool) {
-	log.Info().Msg("initializing app")
-
+	middleware.InitLog()
+	log.Info().Str("source", "APP").Msg("initializing app")
 	a.InitApp(accountsUrl, skipAuth)
 }
 
@@ -64,7 +64,7 @@ func (a *App) InitApp(accountsUrl string, skipAuth bool) {
 func (a *App) initOidc(issuer string) {
 	oidcProvider, err := oidc.NewProvider(context.TODO(), issuer)
 	if err != nil {
-		log.Fatal().Err(err).Msg("oidc.NewProvider")
+		log.Fatal().Str("source", "APP").Err(err).Msg("oidc.NewProvider")
 	}
 
 	a.tokenVerifier = oidcProvider.Verifier(&oidc.Config{
@@ -78,9 +78,9 @@ func (a *App) Run(listenAddr string) {
 		addr = ":8080"
 	}
 
-	log.Info().Msgf("app run %s", addr)
+	log.Info().Str("source", "APP").Msgf("app run %s", addr)
 	if err := http.ListenAndServe(addr, a.Handler); err != nil {
-		log.Fatal().Err(err).Msg("http.ListenAndServe")
+		log.Fatal().Str("source", "APP").Err(err).Msg("http.ListenAndServe")
 	}
 }
 
@@ -102,6 +102,7 @@ func (a *App) initializeRoutes() {
 
 func (a *App) initMQTT() {
 	if common.SERVER != "" {
+		//a.InitLogMQTT()
 		opts := mqtt.NewClientOptions()
 		opts.AddBroker(fmt.Sprintf("ssl://%s", common.SERVER))
 		opts.SetClientID(common.EP + "-exec_mqtt_client")
@@ -113,7 +114,7 @@ func (a *App) initMQTT() {
 		a.Msg = mqtt.NewClient(opts)
 		if token := a.Msg.Connect(); token.Wait() && token.Error() != nil {
 			err := token.Error()
-			log.Fatal().Err(err).Msg("initialize mqtt listener")
+			log.Fatal().Str("source", "MQTT").Err(err).Msg("initialize mqtt listener")
 		}
 	}
 }

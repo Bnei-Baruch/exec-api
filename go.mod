@@ -12,5 +12,6 @@ require (
 	github.com/rs/cors v1.7.0
 	github.com/rs/zerolog v1.20.0
 	golang.org/x/oauth2 v0.0.0-20201109201403-9fd604954f58 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )

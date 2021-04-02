@@ -6,6 +6,8 @@ import (
 	"github.com/Bnei-Baruch/exec-api/common"
 	wf "github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"strings"
 )
 
@@ -21,44 +23,44 @@ type MqttPayload struct {
 }
 
 func (a *App) SubMQTT(c mqtt.Client) {
-	fmt.Println("- Connected to MQTT -")
+	log.Info().Str("source", "MQTT").Msg("- Connected -")
 	if token := a.Msg.Subscribe(common.ServiceTopic, byte(2), a.execMessage); token.Wait() && token.Error() != nil {
-		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
+		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: "+common.ServiceTopic)
+		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.ServiceTopic)
 	}
 
 	if token := a.Msg.Subscribe(common.ExtPrefix+common.ServiceTopic, byte(2), a.execMessage); token.Wait() && token.Error() != nil {
-		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
+		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: "+common.ExtPrefix+common.ServiceTopic)
+		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.ExtPrefix + common.ServiceTopic)
 	}
 
 	if token := a.Msg.Subscribe(common.WorkflowTopic, byte(2), wf.MqttMessage); token.Wait() && token.Error() != nil {
-		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
+		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: "+common.WorkflowTopic)
+		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.WorkflowTopic)
 	}
 
 	if token := a.Msg.Subscribe(common.ExtPrefix+common.WorkflowTopic, byte(2), wf.MqttMessage); token.Wait() && token.Error() != nil {
-		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
+		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: "+common.ExtPrefix+common.WorkflowTopic)
+		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.ExtPrefix + common.WorkflowTopic)
 	}
 
 	if token := a.Msg.Subscribe(common.StateTopic, byte(2), wf.SetState); token.Wait() && token.Error() != nil {
-		fmt.Printf("MQTT Subscription error: %s\n", token.Error())
+		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
-		fmt.Printf("%s\n", "MQTT Subscription: "+common.StateTopic)
+		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.StateTopic)
 	}
 }
 
-func (a *App) LostMQTT(c mqtt.Client, e error) {
-	fmt.Printf("MQTT Connection Error: %s\n", e)
+func (a *App) LostMQTT(c mqtt.Client, err error) {
+	log.Error().Str("source", "MQTT").Err(err).Msg("Lost Connection")
 }
 
 func (a *App) execMessage(c mqtt.Client, m mqtt.Message) {
-	//fmt.Printf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
+	log.Debug().Str("source", "MQTT").Msgf("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
 	id := "false"
 	s := strings.Split(m.Topic(), "/")
 	p := string(m.Payload())
@@ -110,11 +112,34 @@ func (a *App) SendRespond(id string, m *MqttPayload) {
 	}
 	message, err := json.Marshal(m)
 	if err != nil {
-		fmt.Printf("Files respond with json: %s\n", err)
+		log.Error().Str("source", "MQTT").Err(err).Msg("Message parsing")
 	}
 
 	text := fmt.Sprintf(string(message))
 	if token := a.Msg.Publish(topic, byte(2), false, text); token.Wait() && token.Error() != nil {
-		fmt.Printf("Send Respond error: %s\n", token.Error())
+		log.Error().Str("source", "MQTT").Err(err).Msg("Send Respond")
 	}
+}
+
+func (a *App) InitLogMQTT() {
+	mqtt.DEBUG = NewPahoLogAdapter(zerolog.InfoLevel)
+	mqtt.WARN = NewPahoLogAdapter(zerolog.WarnLevel)
+	mqtt.CRITICAL = NewPahoLogAdapter(zerolog.ErrorLevel)
+	mqtt.ERROR = NewPahoLogAdapter(zerolog.ErrorLevel)
+}
+
+type PahoLogAdapter struct {
+	level zerolog.Level
+}
+
+func NewPahoLogAdapter(level zerolog.Level) *PahoLogAdapter {
+	return &PahoLogAdapter{level: level}
+}
+
+func (a *PahoLogAdapter) Println(v ...interface{}) {
+	log.Debug().Str("source", "MQTT").Msgf("%s", fmt.Sprint(v...))
+}
+
+func (a *PahoLogAdapter) Printf(format string, v ...interface{}) {
+	log.Debug().Str("source", "MQTT").Msgf("%s", fmt.Sprintf(format, v...))
 }
