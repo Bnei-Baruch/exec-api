@@ -65,9 +65,12 @@ func Publish(topic string, message string, c mqtt.Client) {
 func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	src := common.EP
+	ep := "/ingest/"
+
 	if src == "archcap" {
-		return
+		ep = "/capture/"
 	}
+
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
@@ -103,7 +106,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		Wfstatus:  *ws,
 	}
 
-	err = cw.PutWFDB(rp.Action, "/ingest/")
+	err = cw.PutWFDB(rp.Action, ep)
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
@@ -121,9 +124,12 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 
 	src := common.EP
+	ep := "/ingest/"
+
 	if src == "archcap" {
-		return
+		ep = "/capture/"
 	}
+
 	cs := GetState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
@@ -143,7 +149,7 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 		Line:      cs.Line,
 	}
 
-	err := cw.PutWFDB(rp.Action, "/ingest/")
+	err := cw.PutWFDB(rp.Action, ep)
 	if err != nil {
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
@@ -268,12 +274,10 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		return
 	}
 
-	if src != "archcap" {
-		err = cm.PostMDB("capture_stop")
-		if err != nil {
-			fmt.Println("MDB capture_stop filed: ", err)
-			return
-		}
+	err = cm.PostMDB("capture_stop")
+	if err != nil {
+		fmt.Println("MDB capture_stop filed: ", err)
+		return
 	}
 
 	FullName := StopName + "_" + rp.ID + ".mp4"
