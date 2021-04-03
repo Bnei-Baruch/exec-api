@@ -1,10 +1,12 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
 	wf "github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/go-cmd/cmd"
+	"github.com/rs/zerolog/log"
 	"os"
 	"regexp"
 	"strings"
@@ -183,11 +185,12 @@ func (a *App) startExecMqttByID(p string, id string) {
 		a.Cmd = make(map[string]*cmd.Cmd)
 	}
 
-	fmt.Println("Start Exec: ", p)
+	log.Debug().Str("source", "EXEC").Str("action", p).Msg("startExecMqttByID: Start Exec")
 	// <-- For Ingest capture only -- //
 	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap)$`, common.EP)
 	if err != nil {
 		rp.Error = err
+		log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: regexp failed")
 		rp.Message = "Internal error"
 		a.SendRespond(id, rp)
 	}
@@ -195,7 +198,8 @@ func (a *App) startExecMqttByID(p string, id string) {
 	if src == true {
 		var ID string
 		cs := wf.GetState()
-		fmt.Println("State Exec: ", cs)
+		u, _ := json.Marshal(cs)
+		log.Debug().Str("source", "EXEC").RawJSON("json", u).Msg("startExecMqttByID: GetState")
 		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" {
 			ID = cs.CaptureID
 		}
@@ -204,6 +208,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 		}
 		if cs.CaptureID == "" {
 			rp.Error = fmt.Errorf("error")
+			log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: CaptureID is empty")
 			rp.Message = "Internal error"
 			a.SendRespond(id, rp)
 			//TODO: generate id and start capture
