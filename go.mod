@@ -7,6 +7,7 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.3.2
 	github.com/go-cmd/cmd v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/jasonlvhit/gocron v0.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/cachecontrol v0.0.0-20200921180117-858c6e7e6b7e // indirect
 	github.com/rs/cors v1.7.0

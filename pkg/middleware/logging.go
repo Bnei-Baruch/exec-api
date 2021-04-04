@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jasonlvhit/gocron"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
@@ -27,6 +28,7 @@ type Config struct {
 	MaxBackups            int
 	MaxAge                int
 	LocalTime             bool
+	Compress              bool
 }
 
 var requestLog = zerolog.New(os.Stdout).With().Timestamp().Caller().Stack().Logger()
@@ -74,40 +76,42 @@ func InitLog() {
 		FileLoggingEnabled:    true,
 		EncodeLogsAsJson:      true,
 		LocalTime:             true,
+		Compress:              false,
 		Directory:             common.LogPath,
 		Filename:              "latest.log",
 		MaxSize:               1000,
-		MaxBackups:            1000,
-		MaxAge:                1,
+		MaxBackups:            0,
+		MaxAge:                0,
 	}
 
 	var writers []io.Writer
 
-	if c.ConsoleLoggingEnabled {
-		writers = append(writers, zerolog.ConsoleWriter{Out: os.Stderr})
-	}
-	if c.FileLoggingEnabled {
-		writers = append(writers, newRollingFile(c))
-	}
-	mw := io.MultiWriter(writers...)
-
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	//zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	zerolog.MessageFieldName = "msg"
-	log.Logger = zerolog.New(mw).With().Timestamp().Logger()
-}
-
-func newRollingFile(c Config) io.Writer {
-	if err := os.MkdirAll(c.Directory, 0744); err != nil {
-		log.Error().Err(err).Str("path", c.Directory).Msg("can't create log directory")
-		return nil
-	}
-
-	return &lumberjack.Logger{
+	l := &lumberjack.Logger{
 		Filename:   path.Join(c.Directory, c.Filename),
 		MaxBackups: c.MaxBackups,
 		MaxSize:    c.MaxSize,
 		MaxAge:     c.MaxAge,
 		LocalTime:  c.LocalTime,
+		Compress:   c.Compress,
 	}
+
+	if err := os.MkdirAll(c.Directory, 0744); err != nil {
+		log.Error().Err(err).Str("path", c.Directory).Msg("can't create log directory")
+	}
+
+	if c.ConsoleLoggingEnabled {
+		writers = append(writers, zerolog.ConsoleWriter{Out: os.Stderr})
+	}
+	if c.FileLoggingEnabled {
+		writers = append(writers, l)
+	}
+	mw := io.MultiWriter(writers...)
+
+	//zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.MessageFieldName = "msg"
+	log.Logger = zerolog.New(mw).With().Timestamp().Logger()
+
+	gocron.Every(1).Day().At("23:59:59").Do(l.Rotate)
+	gocron.Start()
 }
