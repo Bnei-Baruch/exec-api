@@ -76,6 +76,7 @@ type Line struct {
 	CollectionType string   `json:"collection_type"`
 	CollectionUID  string   `json:"collection_uid,omitempty"`
 	ContentType    string   `json:"content_type"`
+	Episode        string   `json:"episode,omitempty"`
 	FinalName      string   `json:"final_name"`
 	HasTranslation bool     `json:"has_translation"`
 	Holiday        bool     `json:"holiday"`
