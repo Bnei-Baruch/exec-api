@@ -429,12 +429,25 @@ func (a *App) getReport(w http.ResponseWriter, r *http.Request) {
 func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
+	v := "2"
 	id := vars["id"]
 	ep := vars["ep"]
 	file := r.FormValue("file")
 
+	if ep == "fhd" {
+		v = "0"
+	}
+
+	if ep == "hd" {
+		v = "1"
+	}
+
+	if ep == "nhd" {
+		v = "2"
+	}
+
 	args := []string{"-progress", "stat_" + id + ".log", "-hide_banner", "-y", "-i", common.CapPath + file,
-		"-map", "0:v:" + ep, "-map", "0:m:language:" + id, "-c", "copy", common.CapPath + id + "_" + file}
+		"-map", "0:v:" + v, "-map", "0:m:language:" + id, "-c", "copy", common.CapPath + ep + "_" + id + "_" + file}
 
 	if len(args) == 0 {
 		httputil.RespondWithError(w, http.StatusBadRequest, "Id not found")
@@ -457,10 +470,7 @@ func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
 	if a.Cmd == nil {
 		a.Cmd = make(map[string]*cmd.Cmd)
 	}
-
-	cmdOptions := cmd.Options{Buffered: false, Streaming: false}
-	os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-	a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, "ffmpeg", args...)
+	a.Cmd[id] = cmd.NewCmd("ffmpeg", args...)
 
 	a.Cmd[id].Start()
 	status := a.Cmd[id].Status()
