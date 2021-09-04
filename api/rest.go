@@ -5,11 +5,27 @@ import (
 	"github.com/Bnei-Baruch/exec-api/pkg/httputil"
 	"github.com/go-cmd/cmd"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 )
+
+func (a *App) getFilesList(w http.ResponseWriter, r *http.Request) {
+
+	var list []string
+	files, err := ioutil.ReadDir(common.CapPath)
+	if err != nil {
+		httputil.RespondWithError(w, http.StatusNotFound, "Not found")
+	}
+
+	for _, f := range files {
+		list = append(list, f.Name())
+	}
+
+	httputil.RespondWithJSON(w, http.StatusOK, list)
+}
 
 func (a *App) getData(w http.ResponseWriter, r *http.Request) {
 

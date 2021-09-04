@@ -99,6 +99,7 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/{ep}/alive/{id}", a.isAlive).Methods("GET")
 	a.Router.HandleFunc("/{ep}/remux/{id}", a.startRemux).Methods("GET")
 	a.Router.HandleFunc("/get/{file}", a.getFile).Methods("GET")
+	a.Router.HandleFunc("/files/list", a.getFilesList).Methods("GET")
 }
 
 func (a *App) initMQTT() {
