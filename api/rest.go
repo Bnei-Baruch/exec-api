@@ -1,10 +1,8 @@
 package api
 
 import (
-	"errors"
 	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/httputil"
-	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/go-cmd/cmd"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -15,11 +13,11 @@ import (
 
 func (a *App) getData(w http.ResponseWriter, r *http.Request) {
 
-	// Check role
-	authRoot := middleware.CheckRole("auth_root", r)
-	if !authRoot {
-		e := errors.New("bad permission")
-		httputil.NewUnauthorizedError(e).Abort(w, r)
+	vars := mux.Vars(r)
+	file := vars["file"]
+
+	if _, err := os.Stat(common.CapPath + file); os.IsNotExist(err) {
+		httputil.RespondWithError(w, http.StatusNotFound, "Not found")
 		return
 	}
 
