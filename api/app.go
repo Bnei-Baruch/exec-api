@@ -85,7 +85,7 @@ func (a *App) Run(listenAddr string) {
 }
 
 func (a *App) initializeRoutes() {
-	a.Router.HandleFunc("/{ep}/test", a.getData).Methods("GET")
+	a.Router.HandleFunc("/test/{file}", a.getData).Methods("GET")
 	a.Router.HandleFunc("/{ep}/sysstat", a.sysStat).Methods("GET")
 	a.Router.HandleFunc("/{ep}/status", a.execStatus).Methods("GET")
 	a.Router.HandleFunc("/{ep}/start", a.startExec).Methods("GET")
@@ -97,6 +97,7 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/{ep}/progress/{id}", a.getProgress).Methods("GET")
 	a.Router.HandleFunc("/{ep}/report/{id}", a.getReport).Methods("GET")
 	a.Router.HandleFunc("/{ep}/alive/{id}", a.isAlive).Methods("GET")
+	a.Router.HandleFunc("/{ep}/remux/{id}", a.startRemux).Methods("GET")
 	a.Router.HandleFunc("/get/{file}", a.getFile).Methods("GET")
 }
 
