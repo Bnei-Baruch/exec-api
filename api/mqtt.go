@@ -34,7 +34,7 @@ func (a *App) ConMQTT() error {
 
 	cp := &paho.Connect{
 		ClientID:     common.EP + "-exec_mqtt_client",
-		KeepAlive:    3,
+		KeepAlive:    10,
 		CleanStart:   true,
 		Username:     common.USERNAME,
 		Password:     []byte(common.PASSWORD),
@@ -49,7 +49,7 @@ func (a *App) ConMQTT() error {
 	debugLog := NewPahoLogAdapter(zerolog.DebugLevel)
 	a.Msg.SetDebugLogger(debugLog)
 	a.Msg.PingHandler.SetDebug(debugLog)
-	//a.Msg.Router.SetDebug(debugLog)
+	a.Msg.Router.SetDebugLogger(debugLog)
 
 	ca, err := a.Msg.Connect(context.Background(), cp)
 	if err != nil {
@@ -61,9 +61,9 @@ func (a *App) ConMQTT() error {
 
 	sa, err := a.Msg.Subscribe(context.Background(), &paho.Subscribe{
 		Subscriptions: map[string]paho.SubscribeOptions{
-			common.ServiceTopic:  {QoS: byte(2)},
-			common.WorkflowTopic: {QoS: byte(2)},
-			common.StateTopic:    {QoS: byte(2)},
+			common.ServiceTopic:  {QoS: byte(1)},
+			common.WorkflowTopic: {QoS: byte(1)},
+			common.StateTopic:    {QoS: byte(1)},
 		},
 	})
 	if err != nil {
@@ -164,7 +164,7 @@ func (a *App) SendRespond(id string, m *MqttPayload) {
 	}
 
 	pa, err := a.Msg.Publish(context.Background(), &paho.Publish{
-		QoS:     byte(2),
+		QoS:     byte(1),
 		Retain:  false,
 		Topic:   topic,
 		Payload: message,
