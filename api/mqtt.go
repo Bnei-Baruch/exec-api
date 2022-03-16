@@ -74,8 +74,8 @@ func (a *App) ConMQTT() error {
 	}
 
 	a.Msg.Router.RegisterHandler(common.ServiceTopic, a.execMessage)
-	a.Msg.Router.RegisterHandler(common.WorkflowTopic, a.execMessage)
-	a.Msg.Router.RegisterHandler(common.StateTopic, a.execMessage)
+	a.Msg.Router.RegisterHandler(common.WorkflowTopic, a.MqttMessage)
+	a.Msg.Router.RegisterHandler(common.StateTopic, SetState)
 
 	return nil
 }
@@ -148,6 +148,24 @@ func (a *App) execMessage(m *paho.Publish) {
 			go a.isAliveMqtt(p, id)
 		}
 	}
+}
+
+func (a *App) SendMessage(topic string, m *MqttWorkflow) {
+	message, err := json.Marshal(m)
+	if err != nil {
+		log.Error().Str("source", "MQTT").Err(err).Msg("Message parsing")
+	}
+	pa, err := a.Msg.Publish(context.Background(), &paho.Publish{
+		QoS:     byte(1),
+		Retain:  false,
+		Topic:   topic,
+		Payload: message,
+	})
+	if err != nil {
+		log.Error().Str("source", "MQTT").Err(err).Msg("Publish: Topic - " + topic + " " + pa.Properties.ReasonString)
+	}
+
+	log.Debug().Str("source", "MQTT").Str("json", string(message)).Msg("Publish: Topic - " + topic)
 }
 
 func (a *App) SendRespond(id string, m *MqttPayload) {

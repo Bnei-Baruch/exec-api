@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
-	wf "github.com/Bnei-Baruch/exec-api/pkg/workflow"
 	"github.com/go-cmd/cmd"
 	"github.com/rs/zerolog/log"
 	"os"
@@ -197,7 +196,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 
 	if src == true {
 		var ID string
-		cs := wf.GetState()
+		cs := GetState()
 		u, _ := json.Marshal(cs)
 		log.Debug().Str("source", "EXEC").RawJSON("json", u).Msg("startExecMqttByID: GetState")
 		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" {

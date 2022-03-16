@@ -1,4 +1,4 @@
-package workflow
+package api
 
 import (
 	"crypto/sha1"
@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/eclipse/paho.golang/paho"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
@@ -26,10 +26,10 @@ type MqttWorkflow struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func MqttMessage(c mqtt.Client, m mqtt.Message) {
-	log.Debug().Str("source", "MQTT").RawJSON("json", m.Payload()).Msg("MqttMessage: Topic - " + m.Topic())
+func (a *App) MqttMessage(m *paho.Publish) {
+	log.Debug().Str("source", "MQTT").RawJSON("json", m.Payload).Msg("MqttMessage: Topic - " + m.Topic)
 	id := "false"
-	s := strings.Split(m.Topic(), "/")
+	s := strings.Split(m.Topic, "/")
 
 	if s[0] == "kli" && len(s) == 5 {
 		id = s[4]
@@ -37,8 +37,8 @@ func MqttMessage(c mqtt.Client, m mqtt.Message) {
 		id = s[3]
 	}
 
-	mp := MqttWorkflow{}
-	err := json.Unmarshal(m.Payload(), &mp)
+	mp := &MqttWorkflow{}
+	err := json.Unmarshal(m.Payload, &mp)
 	if err != nil {
 		log.Error().Str("source", "MQTT").Err(err).Msg("Unmarshal")
 	}
@@ -46,24 +46,16 @@ func MqttMessage(c mqtt.Client, m mqtt.Message) {
 	if id != "false" {
 		switch mp.Action {
 		case "start":
-			go StartFlow(mp, c)
+			go a.StartFlow(mp)
 		case "line":
-			go LineFlow(mp, c)
+			go a.LineFlow(mp)
 		case "stop":
-			go StopFlow(mp, c)
+			go a.StopFlow(mp)
 		}
 	}
 }
 
-func Publish(topic string, message string, c mqtt.Client) {
-	text := fmt.Sprintf(message)
-	log.Debug().Str("source", "MQTT").Str("json", message).Msg("Publish: Topic - " + topic)
-	if token := c.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
-		log.Error().Str("source", "MQTT").Err(token.Error()).Msg("Publish: Topic - " + topic)
-	}
-}
-
-func StartFlow(rp MqttWorkflow, c mqtt.Client) {
+func (a *App) StartFlow(rp *MqttWorkflow) {
 
 	src := common.EP
 	ep := "/ingest/"
@@ -77,8 +69,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		log.Error().Str("source", "CAP").Err(rp.Error).Msg("StartFlow: CaptureID is empty")
 		rp.Message = "Internal error"
-		m, _ := json.Marshal(rp)
-		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+		a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 		return
 	}
 
@@ -95,8 +86,7 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		log.Error().Str("source", "CAP").Err(err).Msg("StartFlow: PostMDB")
 		rp.Error = err
 		rp.Message = "MDB Request Failed"
-		m, _ := json.Marshal(rp)
-		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+		a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 		return
 	}
 
@@ -114,18 +104,15 @@ func StartFlow(rp MqttWorkflow, c mqtt.Client) {
 		log.Error().Str("source", "CAP").Err(err).Msg("StartFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
-		m, _ := json.Marshal(rp)
-		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+		a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 		return
 	}
 
 	rp.Message = "Success"
-	m, _ := json.Marshal(rp)
-
-	Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+	a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 }
 
-func LineFlow(rp MqttWorkflow, c mqtt.Client) {
+func (a *App) LineFlow(rp *MqttWorkflow) {
 
 	src := common.EP
 	ep := "/ingest/"
@@ -139,8 +126,7 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		log.Error().Str("source", "CAP").Err(rp.Error).Msg("LineFlow: CaptureID is empty")
 		rp.Message = "Internal error"
-		m, _ := json.Marshal(rp)
-		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+		a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 		return
 	}
 
@@ -159,18 +145,15 @@ func LineFlow(rp MqttWorkflow, c mqtt.Client) {
 		log.Error().Str("source", "CAP").Err(err).Msg("LineFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
-		m, _ := json.Marshal(rp)
-		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+		a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 		return
 	}
 
 	rp.Message = "Success"
-	m, _ := json.Marshal(rp)
-
-	Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+	a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 }
 
-func StopFlow(rp MqttWorkflow, c mqtt.Client) {
+func (a *App) StopFlow(rp *MqttWorkflow) {
 
 	src := common.EP
 	ep := "/ingest/"
@@ -180,8 +163,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		log.Error().Str("source", "CAP").Err(rp.Error).Msg("StopFlow: CaptureID is empty")
 		rp.Message = "Internal error"
-		m, _ := json.Marshal(rp)
-		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+		a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 		return
 	}
 
@@ -277,8 +259,7 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
-		m, _ := json.Marshal(rp)
-		Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+		a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 		return
 	}
 
@@ -312,7 +293,5 @@ func StopFlow(rp MqttWorkflow, c mqtt.Client) {
 	}
 
 	rp.Message = "Success"
-	m, _ := json.Marshal(rp)
-
-	Publish(common.WorkflowDataTopic+rp.Action, string(m), c)
+	a.SendMessage(common.WorkflowDataTopic+rp.Action, rp)
 }
