@@ -13,30 +13,30 @@ import (
 	"time"
 )
 
-func (a *App) isAliveMqtt(p string, id string) {
+func (m *Mqtt) isAliveMqtt(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
-	if a.Cmd[id] != nil {
-		status := a.Cmd[id].Status()
+	if m.Cmd[id] != nil {
+		status := m.Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Error"
-			a.SendRespond(id, rp)
+			m.SendRespond(id, rp)
 			return
 		}
 		if isruning {
 			rp.Message = "Alive"
-			a.SendRespond(id, rp)
+			m.SendRespond(id, rp)
 			return
 		}
 	}
 
 	rp.Message = "Died"
-	a.SendRespond(id, rp)
+	m.SendRespond(id, rp)
 }
 
-func (a *App) startExecMqtt(p string) {
+func (m *Mqtt) startExecMqtt(p string) {
 
 	rp := &MqttPayload{Action: p}
 	c, err := getConf()
@@ -45,7 +45,7 @@ func (a *App) startExecMqtt(p string) {
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
-			a.SendRespond("false", rp)
+			m.SendRespond("false", rp)
 			return
 		}
 	}
@@ -61,8 +61,8 @@ func (a *App) startExecMqtt(p string) {
 			continue
 		}
 
-		if a.Cmd[id] != nil {
-			status := a.Cmd[id].Status()
+		if m.Cmd[id] != nil {
+			status := m.Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
 				continue
@@ -72,23 +72,23 @@ func (a *App) startExecMqtt(p string) {
 			}
 		}
 
-		if a.Cmd == nil {
-			a.Cmd = make(map[string]*cmd.Cmd)
+		if m.Cmd == nil {
+			m.Cmd = make(map[string]*cmd.Cmd)
 		}
 
 		if service == "ffmpeg" {
 			cmdOptions := cmd.Options{Buffered: false, Streaming: false}
 			os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-			a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+			m.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
 		} else {
-			a.Cmd[id] = cmd.NewCmd(service, args...)
+			m.Cmd[id] = cmd.NewCmd(service, args...)
 		}
 
-		a.Cmd[id].Start()
+		m.Cmd[id].Start()
 
 		time.Sleep(2 * time.Second)
 
-		status := a.Cmd[id].Status()
+		status := m.Cmd[id].Status()
 
 		if status.Exit == 1 {
 			continue
@@ -97,10 +97,10 @@ func (a *App) startExecMqtt(p string) {
 
 	// TODO: return exec report
 	rp.Message = "Success"
-	a.SendRespond("false", rp)
+	m.SendRespond("false", rp)
 }
 
-func (a *App) stopExecMqtt(p string) {
+func (m *Mqtt) stopExecMqtt(p string) {
 
 	rp := &MqttPayload{Action: p}
 	c, err := getConf()
@@ -109,7 +109,7 @@ func (a *App) stopExecMqtt(p string) {
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
-			a.SendRespond("false", rp)
+			m.SendRespond("false", rp)
 			return
 		}
 	}
@@ -118,11 +118,11 @@ func (a *App) stopExecMqtt(p string) {
 	for _, v := range c.Services {
 		id = v.ID
 
-		if a.Cmd[id] == nil {
+		if m.Cmd[id] == nil {
 			continue
 		}
 
-		err := a.Cmd[id].Stop()
+		err := m.Cmd[id].Stop()
 		if err != nil {
 			continue
 		}
@@ -130,10 +130,10 @@ func (a *App) stopExecMqtt(p string) {
 
 	// TODO: return report
 	rp.Message = "Success"
-	a.SendRespond("false", rp)
+	m.SendRespond("false", rp)
 }
 
-func (a *App) startExecMqttByID(p string, id string) {
+func (m *Mqtt) startExecMqttByID(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
 	c, err := getConf()
@@ -142,7 +142,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
-			a.SendRespond(id, rp)
+			m.SendRespond(id, rp)
 			return
 		}
 	}
@@ -160,29 +160,29 @@ func (a *App) startExecMqttByID(p string, id string) {
 	if len(args) == 0 {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "ID not found"
-		a.SendRespond(id, rp)
+		m.SendRespond(id, rp)
 		return
 	}
 
-	if a.Cmd[id] != nil {
-		status := a.Cmd[id].Status()
+	if m.Cmd[id] != nil {
+		status := m.Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Internal error"
-			a.SendRespond(id, rp)
+			m.SendRespond(id, rp)
 			return
 		}
 		if isruning {
 			rp.Error = fmt.Errorf("error")
 			rp.Message = "Already executed"
-			a.SendRespond(id, rp)
+			m.SendRespond(id, rp)
 			return
 		}
 	}
 
-	if a.Cmd == nil {
-		a.Cmd = make(map[string]*cmd.Cmd)
+	if m.Cmd == nil {
+		m.Cmd = make(map[string]*cmd.Cmd)
 	}
 
 	log.Debug().Str("source", "EXEC").Str("action", p).Msg("startExecMqttByID: Start Exec")
@@ -192,7 +192,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 		rp.Error = err
 		log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: regexp failed")
 		rp.Message = "Internal error"
-		a.SendRespond(id, rp)
+		m.SendRespond(id, rp)
 	}
 
 	if src == true {
@@ -210,7 +210,7 @@ func (a *App) startExecMqttByID(p string, id string) {
 			rp.Error = fmt.Errorf("error")
 			log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: CaptureID is empty")
 			rp.Message = "Internal error"
-			a.SendRespond(id, rp)
+			m.SendRespond(id, rp)
 			//TODO: generate id and start capture
 			return
 		}
@@ -233,73 +233,73 @@ func (a *App) startExecMqttByID(p string, id string) {
 	if service == "ffmpeg" {
 		cmdOptions := cmd.Options{Buffered: false, Streaming: false}
 		os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-		a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+		m.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
 	} else {
-		a.Cmd[id] = cmd.NewCmd(service, args...)
+		m.Cmd[id] = cmd.NewCmd(service, args...)
 	}
 
-	a.Cmd[id].Start()
-	status := a.Cmd[id].Status()
+	m.Cmd[id].Start()
+	status := m.Cmd[id].Status()
 	if status.Exit == 1 {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Run Exec Failed"
-		a.SendRespond(id, rp)
+		m.SendRespond(id, rp)
 		return
 	}
 
 	rp.Message = "Success"
-	a.SendRespond(id, rp)
+	m.SendRespond(id, rp)
 }
 
-func (a *App) stopExecMqttByID(p string, id string) {
+func (m *Mqtt) stopExecMqttByID(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
-	if a.Cmd[id] == nil {
+	if m.Cmd[id] == nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Nothing to stop"
-		a.SendRespond(id, rp)
+		m.SendRespond(id, rp)
 		return
 	}
 
-	err := a.Cmd[id].Stop()
+	err := m.Cmd[id].Stop()
 	if err != nil {
 		rp.Error = err
 		rp.Message = "Cmd stop failed"
-		a.SendRespond(id, rp)
+		m.SendRespond(id, rp)
 		return
 	}
 
 	rp.Message = "Success"
-	a.SendRespond(id, rp)
+	m.SendRespond(id, rp)
 }
 
-func (a *App) cmdStatMqtt(p string, id string) {
+func (m *Mqtt) cmdStatMqtt(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
-	if a.Cmd[id] == nil {
+	if m.Cmd[id] == nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Cmd not found"
-		a.SendRespond(id, rp)
+		m.SendRespond(id, rp)
 		return
 	}
 
-	status := a.Cmd[id].Status()
+	status := m.Cmd[id].Status()
 
 	rp.Message = "Success"
 	rp.Data = status
-	a.SendRespond(id, rp)
+	m.SendRespond(id, rp)
 
 }
 
-func (a *App) execStatusMqttByID(p string, id string) {
+func (m *Mqtt) execStatusMqttByID(p string, id string) {
 
 	st := make(map[string]interface{})
 	rp := &MqttPayload{Action: p}
 
-	if a.Cmd[id] == nil {
+	if m.Cmd[id] == nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Cmd not found"
-		a.SendRespond(id, rp)
+		m.SendRespond(id, rp)
 		return
 	}
 
@@ -309,7 +309,7 @@ func (a *App) execStatusMqttByID(p string, id string) {
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
-			a.SendRespond(id, rp)
+			m.SendRespond(id, rp)
 			return
 		}
 	}
@@ -323,12 +323,12 @@ func (a *App) execStatusMqttByID(p string, id string) {
 		}
 	}
 
-	status := a.Cmd[id].Status()
+	status := m.Cmd[id].Status()
 	isruning, err := PidExists(status.PID)
 	if err != nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Cmd not found"
-		a.SendRespond(id, rp)
+		m.SendRespond(id, rp)
 		return
 	}
 	st["alive"] = isruning
@@ -347,10 +347,10 @@ func (a *App) execStatusMqttByID(p string, id string) {
 
 	rp.Message = "Success"
 	rp.Data = st
-	a.SendRespond(id, rp)
+	m.SendRespond(id, rp)
 }
 
-func (a *App) execStatusMqtt(p string) {
+func (m *Mqtt) execStatusMqtt(p string) {
 
 	var id string
 	var services []map[string]interface{}
@@ -362,7 +362,7 @@ func (a *App) execStatusMqtt(p string) {
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
-			a.SendRespond("false", rp)
+			m.SendRespond("false", rp)
 			return
 		}
 	}
@@ -375,18 +375,18 @@ func (a *App) execStatusMqtt(p string) {
 		st["description"] = i.Description
 		//st["args"] = i.Args
 
-		if a.Cmd[id] == nil {
+		if m.Cmd[id] == nil {
 			st["runtime"] = 0
 			st["start"] = 0
 			st["stop"] = 0
 			st["alive"] = false
 		} else {
-			status := a.Cmd[id].Status()
+			status := m.Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
 				rp.Error = fmt.Errorf("error")
 				rp.Message = "Cmd not found"
-				a.SendRespond(id, rp)
+				m.SendRespond(id, rp)
 				return
 			}
 
@@ -408,10 +408,10 @@ func (a *App) execStatusMqtt(p string) {
 
 	rp.Message = "Success"
 	rp.Data = services
-	a.SendRespond(id, rp)
+	m.SendRespond(id, rp)
 }
 
-func (a *App) getProgressMqtt(p string, id string) {
+func (m *Mqtt) getProgressMqtt(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
 	progress := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
@@ -426,10 +426,10 @@ func (a *App) getProgressMqtt(p string, id string) {
 
 	rp.Message = "Success"
 	rp.Data = ffjson
-	a.SendRespond(id, rp)
+	m.SendRespond(id, rp)
 }
 
-func (a *App) getReportMqtt(p string, id string) {
+func (m *Mqtt) getReportMqtt(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
 	progress := cmd.NewCmd("cat", "report_"+id+".log")
@@ -437,5 +437,5 @@ func (a *App) getReportMqtt(p string, id string) {
 
 	rp.Message = "Success"
 	rp.Data = pg
-	a.SendRespond(id, rp)
+	m.SendRespond(id, rp)
 }

@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/coreos/go-oidc"
+	"github.com/eclipse/paho.golang/paho"
 	"github.com/go-cmd/cmd"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -16,6 +18,8 @@ type App struct {
 	Handler       http.Handler
 	tokenVerifier *oidc.IDTokenVerifier
 	Cmd           map[string]*cmd.Cmd
+	MQ            MQ
+	mqtt          *paho.Client
 }
 
 func (a *App) Initialize(accountsUrl string, skipAuth bool) {
@@ -96,4 +100,13 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/{ep}/remux/{id}", a.startRemux).Methods("GET")
 	a.Router.HandleFunc("/get/{file}", a.getFile).Methods("GET")
 	a.Router.HandleFunc("/files/list", a.getFilesList).Methods("GET")
+}
+
+func (a *App) initMQTT() {
+	if common.SERVER != "" {
+		a.MQ = NewMqtt(a.mqtt)
+		if err := a.MQ.Init(); err != nil {
+			log.Fatal().Str("source", "MQTT").Err(err).Msg("initialize mqtt")
+		}
+	}
 }
