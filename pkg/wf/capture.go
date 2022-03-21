@@ -1,4 +1,4 @@
-package api
+package wf
 
 import (
 	"encoding/json"
