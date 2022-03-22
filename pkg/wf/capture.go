@@ -125,7 +125,7 @@ func GetState() *CaptureState {
 	return cs
 }
 
-func SetState(m *paho.Publish) {
+func (w *WorkFlow) SetState(m *paho.Publish) {
 	cs := &CaptureState{}
 	err := json.Unmarshal(m.Payload, &cs)
 	if err != nil {

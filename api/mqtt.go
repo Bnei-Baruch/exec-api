@@ -110,7 +110,7 @@ func (m *Mqtt) conMQTT() error {
 
 	m.mqtt.Router.RegisterHandler(common.ServiceTopic, m.execMessage)
 	m.mqtt.Router.RegisterHandler(common.WorkflowTopic, m.WF.MqttMessage)
-	//m.mqtt.Router.RegisterHandler(common.StateTopic, wf.SetState)
+	m.mqtt.Router.RegisterHandler(common.StateTopic, m.WF.SetState)
 
 	return nil
 }

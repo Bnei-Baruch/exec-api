@@ -30,6 +30,7 @@ type MqttJson struct {
 type WF interface {
 	SendMessage(string, *MqttJson)
 	MqttMessage(m *paho.Publish)
+	SetState(m *paho.Publish)
 }
 
 type WorkFlow struct {
