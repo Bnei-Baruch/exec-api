@@ -13,11 +13,13 @@ import (
 	"time"
 )
 
+var Cmd map[string]*cmd.Cmd
+
 func (m *Mqtt) isAliveMqtt(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
-	if m.Cmd[id] != nil {
-		status := m.Cmd[id].Status()
+	if Cmd[id] != nil {
+		status := Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			rp.Error = err
@@ -61,8 +63,8 @@ func (m *Mqtt) startExecMqtt(p string) {
 			continue
 		}
 
-		if m.Cmd[id] != nil {
-			status := m.Cmd[id].Status()
+		if Cmd[id] != nil {
+			status := Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
 				continue
@@ -72,23 +74,23 @@ func (m *Mqtt) startExecMqtt(p string) {
 			}
 		}
 
-		if m.Cmd == nil {
-			m.Cmd = make(map[string]*cmd.Cmd)
+		if Cmd == nil {
+			Cmd = make(map[string]*cmd.Cmd)
 		}
 
 		if service == "ffmpeg" {
 			cmdOptions := cmd.Options{Buffered: false, Streaming: false}
 			os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-			m.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+			Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
 		} else {
-			m.Cmd[id] = cmd.NewCmd(service, args...)
+			Cmd[id] = cmd.NewCmd(service, args...)
 		}
 
-		m.Cmd[id].Start()
+		Cmd[id].Start()
 
 		time.Sleep(2 * time.Second)
 
-		status := m.Cmd[id].Status()
+		status := Cmd[id].Status()
 
 		if status.Exit == 1 {
 			continue
@@ -118,11 +120,11 @@ func (m *Mqtt) stopExecMqtt(p string) {
 	for _, v := range c.Services {
 		id = v.ID
 
-		if m.Cmd[id] == nil {
+		if Cmd[id] == nil {
 			continue
 		}
 
-		err := m.Cmd[id].Stop()
+		err := Cmd[id].Stop()
 		if err != nil {
 			continue
 		}
@@ -164,8 +166,8 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 		return
 	}
 
-	if m.Cmd[id] != nil {
-		status := m.Cmd[id].Status()
+	if Cmd[id] != nil {
+		status := Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			rp.Error = err
@@ -181,8 +183,8 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 		}
 	}
 
-	if m.Cmd == nil {
-		m.Cmd = make(map[string]*cmd.Cmd)
+	if Cmd == nil {
+		Cmd = make(map[string]*cmd.Cmd)
 	}
 
 	log.Debug().Str("source", "EXEC").Str("action", p).Msg("startExecMqttByID: Start Exec")
@@ -233,13 +235,13 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 	if service == "ffmpeg" {
 		cmdOptions := cmd.Options{Buffered: false, Streaming: false}
 		os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-		m.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+		Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
 	} else {
-		m.Cmd[id] = cmd.NewCmd(service, args...)
+		Cmd[id] = cmd.NewCmd(service, args...)
 	}
 
-	m.Cmd[id].Start()
-	status := m.Cmd[id].Status()
+	Cmd[id].Start()
+	status := Cmd[id].Status()
 	if status.Exit == 1 {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Run Exec Failed"
@@ -254,14 +256,14 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 func (m *Mqtt) stopExecMqttByID(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
-	if m.Cmd[id] == nil {
+	if Cmd[id] == nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Nothing to stop"
 		m.SendRespond(id, rp)
 		return
 	}
 
-	err := m.Cmd[id].Stop()
+	err := Cmd[id].Stop()
 	if err != nil {
 		rp.Error = err
 		rp.Message = "Cmd stop failed"
@@ -276,14 +278,14 @@ func (m *Mqtt) stopExecMqttByID(p string, id string) {
 func (m *Mqtt) cmdStatMqtt(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
-	if m.Cmd[id] == nil {
+	if Cmd[id] == nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Cmd not found"
 		m.SendRespond(id, rp)
 		return
 	}
 
-	status := m.Cmd[id].Status()
+	status := Cmd[id].Status()
 
 	rp.Message = "Success"
 	rp.Data = status
@@ -296,7 +298,7 @@ func (m *Mqtt) execStatusMqttByID(p string, id string) {
 	st := make(map[string]interface{})
 	rp := &MqttPayload{Action: p}
 
-	if m.Cmd[id] == nil {
+	if Cmd[id] == nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Cmd not found"
 		m.SendRespond(id, rp)
@@ -323,7 +325,7 @@ func (m *Mqtt) execStatusMqttByID(p string, id string) {
 		}
 	}
 
-	status := m.Cmd[id].Status()
+	status := Cmd[id].Status()
 	isruning, err := PidExists(status.PID)
 	if err != nil {
 		rp.Error = fmt.Errorf("error")
@@ -375,13 +377,13 @@ func (m *Mqtt) execStatusMqtt(p string) {
 		st["description"] = i.Description
 		//st["args"] = i.Args
 
-		if m.Cmd[id] == nil {
+		if Cmd[id] == nil {
 			st["runtime"] = 0
 			st["start"] = 0
 			st["stop"] = 0
 			st["alive"] = false
 		} else {
-			status := m.Cmd[id].Status()
+			status := Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
 				rp.Error = fmt.Errorf("error")

@@ -53,8 +53,8 @@ func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	if a.Cmd[id] != nil {
-		status := a.Cmd[id].Status()
+	if Cmd[id] != nil {
+		status := Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			httputil.NewInternalError(err).Abort(w, r)
@@ -94,8 +94,8 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		if a.Cmd[id] != nil {
-			status := a.Cmd[id].Status()
+		if Cmd[id] != nil {
+			status := Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
 				continue
@@ -105,23 +105,23 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if a.Cmd == nil {
-			a.Cmd = make(map[string]*cmd.Cmd)
+		if Cmd == nil {
+			Cmd = make(map[string]*cmd.Cmd)
 		}
 
 		if service == "ffmpeg" {
 			cmdOptions := cmd.Options{Buffered: false, Streaming: false}
 			os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-			a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+			Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
 		} else {
-			a.Cmd[id] = cmd.NewCmd(service, args...)
+			Cmd[id] = cmd.NewCmd(service, args...)
 		}
 
-		a.Cmd[id].Start()
+		Cmd[id].Start()
 
 		time.Sleep(2 * time.Second)
 
-		status := a.Cmd[id].Status()
+		status := Cmd[id].Status()
 		if status.Exit == 1 {
 			continue
 		}
@@ -149,11 +149,11 @@ func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
 	for _, v := range c.Services {
 		id = v.ID
 
-		if a.Cmd[id] == nil {
+		if Cmd[id] == nil {
 			continue
 		}
 
-		err := a.Cmd[id].Stop()
+		err := Cmd[id].Stop()
 		if err != nil {
 			continue
 		}
@@ -193,8 +193,8 @@ func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if a.Cmd[id] != nil {
-		status := a.Cmd[id].Status()
+	if Cmd[id] != nil {
+		status := Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			httputil.NewInternalError(err).Abort(w, r)
@@ -206,20 +206,20 @@ func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if a.Cmd == nil {
-		a.Cmd = make(map[string]*cmd.Cmd)
+	if Cmd == nil {
+		Cmd = make(map[string]*cmd.Cmd)
 	}
 
 	if service == "ffmpeg" {
 		cmdOptions := cmd.Options{Buffered: false, Streaming: false}
 		os.Setenv("FFREPORT", "file=report_"+id+".log:level=32")
-		a.Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
+		Cmd[id] = cmd.NewCmdOptions(cmdOptions, service, args...)
 	} else {
-		a.Cmd[id] = cmd.NewCmd(service, args...)
+		Cmd[id] = cmd.NewCmd(service, args...)
 	}
 
-	a.Cmd[id].Start()
-	status := a.Cmd[id].Status()
+	Cmd[id].Start()
+	status := Cmd[id].Status()
 	if status.Exit == 1 {
 		httputil.RespondWithError(w, http.StatusInternalServerError, "Run Exec Failed")
 		return
@@ -233,12 +233,12 @@ func (a *App) stopExecByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	if a.Cmd[id] == nil {
+	if Cmd[id] == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to stop")
 		return
 	}
 
-	err := a.Cmd[id].Stop()
+	err := Cmd[id].Stop()
 	if err != nil {
 		httputil.NewUnauthorizedError(err).Abort(w, r)
 		return
@@ -252,12 +252,12 @@ func (a *App) cmdStat(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	if a.Cmd[id] == nil {
+	if Cmd[id] == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
 		return
 	}
 
-	status := a.Cmd[id].Status()
+	status := Cmd[id].Status()
 
 	httputil.RespondWithJSON(w, http.StatusOK, status)
 
@@ -270,7 +270,7 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 	ep := vars["ep"]
 
-	if a.Cmd[id] == nil {
+	if Cmd[id] == nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
 		return
 	}
@@ -301,7 +301,7 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 		st["log"] = report[n-1]
 	}
 
-	status := a.Cmd[id].Status()
+	status := Cmd[id].Status()
 	isruning, err := PidExists(status.PID)
 	if err != nil {
 		httputil.NewInternalError(err).Abort(w, r)
@@ -347,7 +347,7 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 		st["description"] = i.Description
 		//st["args"] = i.Args
 
-		if a.Cmd[id] == nil {
+		if Cmd[id] == nil {
 			st["runtime"] = 0
 			st["start"] = 0
 			st["stop"] = 0
@@ -361,7 +361,7 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 				st["log"] = report[n-1]
 			}
 
-			status := a.Cmd[id].Status()
+			status := Cmd[id].Status()
 			isruning, err := PidExists(status.PID)
 			if err != nil {
 				httputil.NewInternalError(err).Abort(w, r)
@@ -454,8 +454,8 @@ func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if a.Cmd[id] != nil {
-		status := a.Cmd[id].Status()
+	if Cmd[id] != nil {
+		status := Cmd[id].Status()
 		isruning, err := PidExists(status.PID)
 		if err != nil {
 			httputil.NewInternalError(err).Abort(w, r)
@@ -467,13 +467,13 @@ func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if a.Cmd == nil {
-		a.Cmd = make(map[string]*cmd.Cmd)
+	if Cmd == nil {
+		Cmd = make(map[string]*cmd.Cmd)
 	}
-	a.Cmd[id] = cmd.NewCmd("ffmpeg", args...)
+	Cmd[id] = cmd.NewCmd("ffmpeg", args...)
 
-	a.Cmd[id].Start()
-	status := a.Cmd[id].Status()
+	Cmd[id].Start()
+	status := Cmd[id].Status()
 	if status.Exit == 1 {
 		httputil.RespondWithError(w, http.StatusInternalServerError, "Run Exec Failed")
 		return

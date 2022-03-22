@@ -6,7 +6,6 @@ import (
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/coreos/go-oidc"
 	"github.com/eclipse/paho.golang/paho"
-	"github.com/go-cmd/cmd"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog/log"
@@ -17,7 +16,6 @@ type App struct {
 	Router        *mux.Router
 	Handler       http.Handler
 	tokenVerifier *oidc.IDTokenVerifier
-	Cmd           map[string]*cmd.Cmd
 	MQ            MQ
 	mqtt          *paho.Client
 }

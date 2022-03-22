@@ -8,7 +8,6 @@ import (
 	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/wf"
 	"github.com/eclipse/paho.golang/paho"
-	"github.com/go-cmd/cmd"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"math"
@@ -20,7 +19,6 @@ import (
 type Mqtt struct {
 	mqtt *paho.Client
 	WF   wf.WF
-	Cmd  map[string]*cmd.Cmd
 }
 
 type MqttPayload struct {
