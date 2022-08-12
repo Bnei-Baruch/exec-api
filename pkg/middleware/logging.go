@@ -78,7 +78,7 @@ func InitLog() {
 		LocalTime:             true,
 		Compress:              false,
 		Directory:             common.LogPath,
-		Filename:              "latest.log",
+		Filename:              "mqtt.log",
 		MaxSize:               1000,
 		MaxBackups:            0,
 		MaxAge:                0,

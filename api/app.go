@@ -2,10 +2,9 @@ package api
 
 import (
 	"context"
-	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/coreos/go-oidc"
-	"github.com/eclipse/paho.golang/paho"
+	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog/log"
@@ -17,7 +16,7 @@ type App struct {
 	Handler       http.Handler
 	tokenVerifier *oidc.IDTokenVerifier
 	MQ            MQ
-	mqtt          *paho.Client
+	mqtt          *autopaho.ConnectionManager
 }
 
 func (a *App) Initialize(accountsUrl string, skipAuth bool) {
@@ -101,10 +100,8 @@ func (a *App) initializeRoutes() {
 }
 
 func (a *App) initMQTT() {
-	if common.SERVER != "" {
-		a.MQ = NewMqtt(a.mqtt)
-		if err := a.MQ.Init(); err != nil {
-			log.Fatal().Str("source", "MQTT").Err(err).Msg("initialize mqtt")
-		}
+	a.MQ = NewMqtt(a.mqtt)
+	if err := a.MQ.Init(); err != nil {
+		log.Fatal().Str("source", "MQTT").Err(err).Msg("initialize mqtt")
 	}
 }
