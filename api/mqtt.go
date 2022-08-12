@@ -97,10 +97,11 @@ func (m *Mqtt) Init() error {
 		return err
 	}
 
+	m.WF = wf.NewWorkFlow(m.mqtt)
+
 	cliCfg.Router.RegisterHandler(common.ServiceTopic, m.execMessage)
 	cliCfg.Router.RegisterHandler(common.WorkflowTopic, m.WF.MqttMessage)
 	cliCfg.Router.RegisterHandler(common.StateTopic, m.WF.SetState)
-	m.WF = wf.NewWorkFlow(m.mqtt)
 
 	return nil
 }
