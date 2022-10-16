@@ -110,3 +110,13 @@ func getConf() (*Config, error) {
 	}
 	return &Config, nil
 }
+
+func removeProgress(file string) {
+	_, err := os.Stat(file)
+	if err == nil {
+		e := os.Remove(file)
+		if e != nil {
+			fmt.Printf("%s\n", e)
+		}
+	}
+}
