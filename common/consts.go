@@ -22,6 +22,7 @@ var (
 	CapPath = os.Getenv("CAP_PATH")
 	LogPath = os.Getenv("LOG_PATH")
 
+	DEBUG = os.Getenv("DEBUG")
 	WFCAP = os.Getenv("WF_CAP")
 
 	ServiceTopic  = "exec/service/" + EP + "/#"

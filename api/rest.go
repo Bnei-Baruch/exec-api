@@ -159,6 +159,8 @@ func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	removeProgress("stat_" + id + ".log")
+
 	// TODO: return report
 	httputil.RespondSuccess(w)
 }
@@ -224,6 +226,8 @@ func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondWithError(w, http.StatusInternalServerError, "Run Exec Failed")
 		return
 	}
+
+	removeProgress("stat_" + id + ".log")
 
 	httputil.RespondSuccess(w)
 }
@@ -401,17 +405,33 @@ func (a *App) getProgress(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	progress := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
-	p := <-progress.Start()
-
-	ffjson := make(map[string]string)
-
-	for _, line := range p.Stdout {
-		args := strings.Split(line, "=")
-		ffjson[args[0]] = args[1]
+	if a.Cmd[id] == nil {
+		httputil.RespondWithError(w, http.StatusNotFound, "died")
+		removeProgress("stat_" + id + ".log")
+		return
 	}
 
-	httputil.RespondWithJSON(w, http.StatusOK, ffjson)
+	status := a.Cmd[id].Status()
+	isruning, err := PidExists(status.PID)
+	if err != nil {
+		httputil.RespondWithError(w, http.StatusNotFound, "died")
+		removeProgress("stat_" + id + ".log")
+		return
+	}
+
+	if isruning {
+		progress := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
+		p := <-progress.Start()
+
+		ffjson := make(map[string]string)
+
+		for _, line := range p.Stdout {
+			args := strings.Split(line, "=")
+			ffjson[args[0]] = args[1]
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, ffjson)
+	}
 }
 
 func (a *App) getReport(w http.ResponseWriter, r *http.Request) {
