@@ -128,6 +128,8 @@ func (a *App) stopExecMqtt(p string) {
 		}
 	}
 
+	removeProgress("stat_" + id + ".log")
+
 	// TODO: return report
 	rp.Message = "Success"
 	a.SendRespond("false", rp)
@@ -268,6 +270,8 @@ func (a *App) stopExecMqttByID(p string, id string) {
 		a.SendRespond(id, rp)
 		return
 	}
+
+	removeProgress("stat_" + id + ".log")
 
 	rp.Message = "Success"
 	a.SendRespond(id, rp)
@@ -412,20 +416,37 @@ func (a *App) execStatusMqtt(p string) {
 }
 
 func (a *App) getProgressMqtt(p string, id string) {
-
 	rp := &MqttPayload{Action: p}
-	progress := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
-	pg := <-progress.Start()
 
-	ffjson := make(map[string]string)
-
-	for _, line := range pg.Stdout {
-		args := strings.Split(line, "=")
-		ffjson[args[0]] = args[1]
+	if a.Cmd[id] == nil {
+		rp.Message = "Not running"
+		removeProgress("stat_" + id + ".log")
+		return
 	}
 
-	rp.Message = "Success"
-	rp.Data = ffjson
+	status := a.Cmd[id].Status()
+	isruning, err := PidExists(status.PID)
+	if err != nil {
+		rp.Message = "Not running"
+		removeProgress("stat_" + id + ".log")
+		return
+	}
+
+	if isruning {
+		progress := cmd.NewCmd("tail", "-n", "12", "stat_"+id+".log")
+		pg := <-progress.Start()
+
+		ffjson := make(map[string]string)
+
+		for _, line := range pg.Stdout {
+			args := strings.Split(line, "=")
+			ffjson[args[0]] = args[1]
+		}
+
+		rp.Message = "Success"
+		rp.Data = ffjson
+	}
+
 	a.SendRespond(id, rp)
 }
 
