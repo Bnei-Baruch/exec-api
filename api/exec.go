@@ -189,7 +189,7 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 
 	log.Debug().Str("source", "EXEC").Str("action", p).Msg("startExecMqttByID: Start Exec")
 	// <-- For Ingest capture only -- //
-	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap)$`, common.EP)
+	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testcap)$`, common.EP)
 	if err != nil {
 		rp.Error = err
 		log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: regexp failed")
@@ -202,19 +202,20 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 		cs := wf.GetState()
 		u, _ := json.Marshal(cs)
 		log.Debug().Str("source", "EXEC").RawJSON("json", u).Msg("startExecMqttByID: GetState")
-		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" {
+		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" || common.EP == "testcap" {
 			ID = cs.CaptureID
 		}
 		if common.EP == "mltbackup" || common.EP == "backupcap" {
 			ID = cs.BackupID
 		}
 		if cs.CaptureID == "" {
-			rp.Error = fmt.Errorf("error")
-			log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: CaptureID is empty")
-			rp.Message = "Internal error"
-			m.SendRespond(id, rp)
-			//TODO: generate id and start capture
-			return
+			cs.CaptureID = "CaptureID"
+			//rp.Error = fmt.Errorf("error")
+			//log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: CaptureID is empty")
+			//rp.Message = "Internal error"
+			//m.SendRespond(id, rp)
+			////TODO: generate id and start capture
+			//return
 		}
 
 		// Set capture filename with workflow ID

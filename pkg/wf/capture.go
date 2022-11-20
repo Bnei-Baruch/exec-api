@@ -140,6 +140,8 @@ func (w *WorkFlow) SetState(m *paho.Publish) {
 	if err != nil {
 		log.Error().Str("source", "CAP").Err(err).Msg("save state")
 	}
+
+	w.SendProgress(cs.IsRec)
 }
 
 func (m *MdbPayload) PostMDB(ep string) error {

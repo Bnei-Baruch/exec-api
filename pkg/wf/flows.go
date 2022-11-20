@@ -9,12 +9,14 @@ import (
 	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
+	"github.com/go-cmd/cmd"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 type MqttJson struct {
@@ -42,6 +44,43 @@ type WorkFlow struct {
 func NewWorkFlow(mqtt *autopaho.ConnectionManager) WF {
 	return &WorkFlow{
 		mqtt: mqtt,
+	}
+}
+
+var Ticker *time.Ticker
+var Record = false
+
+func (w *WorkFlow) SendProgress(on bool) {
+	rp := &MqttJson{Action: "progress"}
+	if on && Record == false {
+		Record = true
+		Ticker = time.NewTicker(1000 * time.Millisecond)
+		go func() {
+			for range Ticker.C {
+				progress := cmd.NewCmd("tail", "-n", "12", "stat_sdi"+".log")
+				pg := <-progress.Start()
+
+				ffjson := make(map[string]string)
+
+				for _, line := range pg.Stdout {
+					args := strings.Split(line, "=")
+					ffjson[args[0]] = args[1]
+				}
+
+				rp.Message = "On"
+				rp.Data = ffjson
+
+				w.SendMessage(common.ServiceDataTopic+common.EP, rp)
+			}
+		}()
+	}
+
+	if on == false && Record == true {
+		if Record {
+			Ticker.Stop()
+		}
+		rp.Message = "Off"
+		w.SendMessage(common.ServiceDataTopic+common.EP, rp)
 	}
 }
 
