@@ -78,6 +78,7 @@ func (w *WorkFlow) SendProgress(on bool) {
 	if on == false && Record == true {
 		if Record {
 			Ticker.Stop()
+			Record = false
 		}
 		rp.Message = "Off"
 		w.SendMessage(common.ServiceDataTopic+common.EP, rp)

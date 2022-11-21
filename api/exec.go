@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -261,6 +262,7 @@ func (m *Mqtt) stopExecMqttByID(p string, id string) {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Nothing to stop"
 		m.SendRespond(id, rp)
+		syscall.Kill(GetPID(), syscall.SIGTERM)
 		return
 	}
 
@@ -271,6 +273,8 @@ func (m *Mqtt) stopExecMqttByID(p string, id string) {
 		m.SendRespond(id, rp)
 		return
 	}
+
+	removeProgress("stat_" + id + ".log")
 
 	rp.Message = "Success"
 	m.SendRespond(id, rp)

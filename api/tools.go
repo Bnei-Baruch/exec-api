@@ -6,6 +6,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
+	"regexp"
+	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -119,4 +123,13 @@ func removeProgress(file string) {
 			fmt.Printf("%s\n", e)
 		}
 	}
+}
+
+func GetPID() int {
+	cmd := exec.Command("pgrep", "ffmpeg")
+	out, _ := cmd.Output()
+	parts := strings.Split(string(out), "\n")
+	regexp.MustCompile(`[\r\n]+`).Split(parts[0], -1)
+	pid, _ := strconv.Atoi(string([]byte(parts[0])))
+	return pid
 }
