@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
+	"github.com/Bnei-Baruch/exec-api/pkg/pgutil"
 	"github.com/Bnei-Baruch/exec-api/pkg/wf"
 	"github.com/go-cmd/cmd"
 	"github.com/rs/zerolog/log"
@@ -21,7 +22,7 @@ func (m *Mqtt) isAliveMqtt(p string, id string) {
 	rp := &MqttPayload{Action: p}
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := PidExists(status.PID)
+		isruning, err := pgutil.PidExists(status.PID)
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Error"
@@ -66,7 +67,7 @@ func (m *Mqtt) startExecMqtt(p string) {
 
 		if Cmd[id] != nil {
 			status := Cmd[id].Status()
-			isruning, err := PidExists(status.PID)
+			isruning, err := pgutil.PidExists(status.PID)
 			if err != nil {
 				continue
 			}
@@ -169,7 +170,7 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := PidExists(status.PID)
+		isruning, err := pgutil.PidExists(status.PID)
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Internal error"
@@ -190,7 +191,7 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 
 	log.Debug().Str("source", "EXEC").Str("action", p).Msg("startExecMqttByID: Start Exec")
 	// <-- For Ingest capture only -- //
-	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testcap)$`, common.EP)
+	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap)$`, common.EP)
 	if err != nil {
 		rp.Error = err
 		log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: regexp failed")
@@ -198,12 +199,13 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 		m.SendRespond(id, rp)
 	}
 
+	cs := wf.GetState()
+
 	if src == true {
 		var ID string
-		cs := wf.GetState()
 		u, _ := json.Marshal(cs)
 		log.Debug().Str("source", "EXEC").RawJSON("json", u).Msg("startExecMqttByID: GetState")
-		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" || common.EP == "testcap" {
+		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" || common.EP == "testmaincap" {
 			ID = cs.CaptureID
 		}
 		if common.EP == "mltbackup" || common.EP == "backupcap" {
@@ -251,6 +253,12 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 		return
 	}
 
+	log.Debug().Str("source", "CAP").Msg("start exec")
+
+	if src == true {
+		m.SendProgress(true)
+	}
+
 	rp.Message = "Success"
 	m.SendRespond(id, rp)
 }
@@ -258,12 +266,24 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 func (m *Mqtt) stopExecMqttByID(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
+	cs := wf.GetState()
+
 	if Cmd[id] == nil {
-		rp.Error = fmt.Errorf("error")
-		rp.Message = "Nothing to stop"
-		m.SendRespond(id, rp)
-		syscall.Kill(GetPID(), syscall.SIGTERM)
-		return
+		pid := pgutil.GetPID()
+		if pid > 0 {
+			syscall.Kill(pid, syscall.SIGTERM)
+			cs.IsRec = false
+			m.SendState(common.WorkflowStateTopic, cs)
+			removeProgress("stat_" + id + ".log")
+			rp.Message = "Success"
+			m.SendRespond(id, rp)
+			return
+		} else {
+			rp.Error = fmt.Errorf("error")
+			rp.Message = "Nothing to stop"
+			m.SendRespond(id, rp)
+			return
+		}
 	}
 
 	err := Cmd[id].Stop()
@@ -272,6 +292,12 @@ func (m *Mqtt) stopExecMqttByID(p string, id string) {
 		rp.Message = "Cmd stop failed"
 		m.SendRespond(id, rp)
 		return
+	}
+
+	src, _ := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap)$`, common.EP)
+
+	if src == true {
+		m.SendProgress(false)
 	}
 
 	removeProgress("stat_" + id + ".log")
@@ -331,7 +357,7 @@ func (m *Mqtt) execStatusMqttByID(p string, id string) {
 	}
 
 	status := Cmd[id].Status()
-	isruning, err := PidExists(status.PID)
+	isruning, err := pgutil.PidExists(status.PID)
 	if err != nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Cmd not found"
@@ -389,7 +415,7 @@ func (m *Mqtt) execStatusMqtt(p string) {
 			st["alive"] = false
 		} else {
 			status := Cmd[id].Status()
-			isruning, err := PidExists(status.PID)
+			isruning, err := pgutil.PidExists(status.PID)
 			if err != nil {
 				rp.Error = fmt.Errorf("error")
 				rp.Message = "Cmd not found"
@@ -445,4 +471,47 @@ func (m *Mqtt) getReportMqtt(p string, id string) {
 	rp.Message = "Success"
 	rp.Data = pg
 	m.SendRespond(id, rp)
+}
+
+var Ticker *time.Ticker
+
+func (m *Mqtt) SendProgress(on bool) {
+	log.Debug().Str("source", "CAP").Msg("SendProgress")
+	rp := &MqttPayload{Action: "progress"}
+	if on {
+		Ticker = time.NewTicker(1000 * time.Millisecond)
+		go func() {
+			for range Ticker.C {
+				pid := pgutil.GetPID()
+				if pid == 0 {
+					Ticker.Stop()
+					rp.Message = "Off"
+				} else {
+					progress := cmd.NewCmd("tail", "-n", "12", "stat_sdi"+".log")
+					pg := <-progress.Start()
+
+					if pg.Error != nil {
+						return
+					}
+
+					ffjson := make(map[string]string)
+
+					for _, line := range pg.Stdout {
+						args := strings.Split(line, "=")
+						ffjson[args[0]] = args[1]
+					}
+
+					rp.Message = "On"
+					rp.Data = ffjson
+				}
+				m.SendMessage(common.ServiceDataTopic+common.EP, rp)
+			}
+		}()
+	}
+
+	if on == false {
+		Ticker.Stop()
+		rp.Message = "Off"
+		m.SendMessage(common.ServiceDataTopic+common.EP, rp)
+	}
 }

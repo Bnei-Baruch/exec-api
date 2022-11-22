@@ -141,7 +141,14 @@ func (w *WorkFlow) SetState(m *paho.Publish) {
 		log.Error().Str("source", "CAP").Err(err).Msg("save state")
 	}
 
-	w.SendProgress(cs.IsRec)
+	//pid := pgutil.GetPID()
+	//if pid == 0 && cs.IsRec {
+	//	cs.IsRec = false
+	//	w.SendState(common.StateTopic, cs)
+	//	return
+	//}
+	//
+	//w.SendProgress(cs.IsRec)
 }
 
 func (m *MdbPayload) PostMDB(ep string) error {

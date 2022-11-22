@@ -25,9 +25,10 @@ var (
 	DEBUG = os.Getenv("DEBUG")
 	WFCAP = os.Getenv("WF_CAP")
 
-	ServiceTopic  = "exec/service/" + EP + "/#"
-	WorkflowTopic = "workflow/service/capture/" + EP
-	StateTopic    = "workflow/state/capture/" + WFCAP
+	ExecServiceTopic     = "exec/service/" + EP + "/#"
+	ExecStateTopic       = "exec/state/" + EP
+	WorkflowServiceTopic = "workflow/service/capture/" + EP
+	WorkflowStateTopic   = "workflow/state/capture/" + WFCAP
 )
 
 const (

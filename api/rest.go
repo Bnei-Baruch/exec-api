@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/httputil"
+	"github.com/Bnei-Baruch/exec-api/pkg/pgutil"
 	"github.com/go-cmd/cmd"
 	"github.com/gorilla/mux"
 	"io/ioutil"
@@ -55,7 +56,7 @@ func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := PidExists(status.PID)
+		isruning, err := pgutil.PidExists(status.PID)
 		if err != nil {
 			httputil.NewInternalError(err).Abort(w, r)
 			return
@@ -96,7 +97,7 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 
 		if Cmd[id] != nil {
 			status := Cmd[id].Status()
-			isruning, err := PidExists(status.PID)
+			isruning, err := pgutil.PidExists(status.PID)
 			if err != nil {
 				continue
 			}
@@ -197,7 +198,7 @@ func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := PidExists(status.PID)
+		isruning, err := pgutil.PidExists(status.PID)
 		if err != nil {
 			httputil.NewInternalError(err).Abort(w, r)
 			return
@@ -306,7 +307,7 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := Cmd[id].Status()
-	isruning, err := PidExists(status.PID)
+	isruning, err := pgutil.PidExists(status.PID)
 	if err != nil {
 		httputil.NewInternalError(err).Abort(w, r)
 		return
@@ -366,7 +367,7 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 			}
 
 			status := Cmd[id].Status()
-			isruning, err := PidExists(status.PID)
+			isruning, err := pgutil.PidExists(status.PID)
 			if err != nil {
 				httputil.NewInternalError(err).Abort(w, r)
 				return
@@ -412,7 +413,7 @@ func (a *App) getProgress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := Cmd[id].Status()
-	isruning, err := PidExists(status.PID)
+	isruning, err := pgutil.PidExists(status.PID)
 	if err != nil {
 		httputil.RespondWithError(w, http.StatusNotFound, "died")
 		removeProgress("stat_" + id + ".log")
@@ -476,7 +477,7 @@ func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := PidExists(status.PID)
+		isruning, err := pgutil.PidExists(status.PID)
 		if err != nil {
 			httputil.NewInternalError(err).Abort(w, r)
 			return

@@ -9,14 +9,12 @@ import (
 	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
-	"github.com/go-cmd/cmd"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 )
 
 type MqttJson struct {
@@ -47,44 +45,6 @@ func NewWorkFlow(mqtt *autopaho.ConnectionManager) WF {
 	}
 }
 
-var Ticker *time.Ticker
-var Record = false
-
-func (w *WorkFlow) SendProgress(on bool) {
-	rp := &MqttJson{Action: "progress"}
-	if on && Record == false {
-		Record = true
-		Ticker = time.NewTicker(1000 * time.Millisecond)
-		go func() {
-			for range Ticker.C {
-				progress := cmd.NewCmd("tail", "-n", "12", "stat_sdi"+".log")
-				pg := <-progress.Start()
-
-				ffjson := make(map[string]string)
-
-				for _, line := range pg.Stdout {
-					args := strings.Split(line, "=")
-					ffjson[args[0]] = args[1]
-				}
-
-				rp.Message = "On"
-				rp.Data = ffjson
-
-				w.SendMessage(common.ServiceDataTopic+common.EP, rp)
-			}
-		}()
-	}
-
-	if on == false && Record == true {
-		if Record {
-			Ticker.Stop()
-			Record = false
-		}
-		rp.Message = "Off"
-		w.SendMessage(common.ServiceDataTopic+common.EP, rp)
-	}
-}
-
 func (w *WorkFlow) MqttMessage(m *paho.Publish) {
 	log.Debug().Str("source", "MQTT").RawJSON("json", m.Payload).Msg("MqttMessage: Topic - " + m.Topic)
 	id := "false"
@@ -112,6 +72,24 @@ func (w *WorkFlow) MqttMessage(m *paho.Publish) {
 			go w.StopFlow(mp)
 		}
 	}
+}
+
+func (w *WorkFlow) SendState(topic string, p *CaptureState) {
+	message, err := json.Marshal(p)
+	if err != nil {
+		log.Error().Str("source", "MQTT").Err(err).Msg("Message parsing")
+	}
+	pa, err := w.mqtt.Publish(context.Background(), &paho.Publish{
+		QoS:     byte(1),
+		Retain:  true,
+		Topic:   topic,
+		Payload: message,
+	})
+	if err != nil {
+		log.Error().Str("source", "MQTT").Err(err).Msg("Publish: Topic - " + topic + " " + pa.Properties.ReasonString)
+	}
+
+	log.Debug().Str("source", "MQTT").Str("json", string(message)).Msg("Publish: Topic - " + topic)
 }
 
 func (w *WorkFlow) SendMessage(topic string, m *MqttJson) {
