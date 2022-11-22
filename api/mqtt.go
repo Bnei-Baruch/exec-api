@@ -60,6 +60,7 @@ func (m *Mqtt) Init() error {
 			if _, err := cm.Subscribe(context.Background(), &paho.Subscribe{
 				Subscriptions: map[string]paho.SubscribeOptions{
 					common.ExecServiceTopic:     {QoS: byte(1)},
+					common.ExecStateTopic:       {QoS: byte(1)},
 					common.WorkflowServiceTopic: {QoS: byte(1)},
 					common.WorkflowStateTopic:   {QoS: byte(1)},
 				},
@@ -100,6 +101,7 @@ func (m *Mqtt) Init() error {
 	m.WF = wf.NewWorkFlow(m.mqtt)
 
 	cliCfg.Router.RegisterHandler(common.ExecServiceTopic, m.execMessage)
+	cliCfg.Router.RegisterHandler(common.ExecStateTopic, m.execState)
 	cliCfg.Router.RegisterHandler(common.WorkflowServiceTopic, m.WF.MqttMessage)
 	cliCfg.Router.RegisterHandler(common.WorkflowStateTopic, m.WF.SetState)
 
@@ -153,22 +155,22 @@ func (m *Mqtt) execMessage(p *paho.Publish) {
 	}
 }
 
-func (m *Mqtt) SendState(topic string, p *wf.CaptureState) {
-	message, err := json.Marshal(p)
-	if err != nil {
-		log.Error().Str("source", "MQTT").Err(err).Msg("Message parsing")
-	}
+func (m *Mqtt) SendState(topic string, state string) {
+	//message, err := json.Marshal(state)
+	//if err != nil {
+	//	log.Error().Str("source", "MQTT").Err(err).Msg("Message parsing")
+	//}
 	pa, err := m.mqtt.Publish(context.Background(), &paho.Publish{
 		QoS:     byte(1),
 		Retain:  true,
 		Topic:   topic,
-		Payload: message,
+		Payload: []byte(state),
 	})
 	if err != nil {
 		log.Error().Str("source", "MQTT").Err(err).Msg("Publish: Topic - " + topic + " " + pa.Properties.ReasonString)
 	}
 
-	log.Debug().Str("source", "MQTT").Str("json", string(message)).Msg("Publish: Topic - " + topic)
+	log.Debug().Str("source", "MQTT").Str("State", state).Msg("Publish: Topic - " + topic)
 }
 
 func (m *Mqtt) SendMessage(topic string, p *MqttPayload) {

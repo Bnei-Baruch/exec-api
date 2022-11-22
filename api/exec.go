@@ -6,6 +6,7 @@ import (
 	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/pgutil"
 	"github.com/Bnei-Baruch/exec-api/pkg/wf"
+	"github.com/eclipse/paho.golang/paho"
 	"github.com/go-cmd/cmd"
 	"github.com/rs/zerolog/log"
 	"os"
@@ -255,12 +256,9 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 
 	log.Debug().Str("source", "CAP").Msg("start exec")
 
-	if src == true {
-		m.SendProgress(true)
-	}
-
 	rp.Message = "Success"
 	m.SendRespond(id, rp)
+	m.SendState(common.ExecStateTopic, "On")
 }
 
 func (m *Mqtt) stopExecMqttByID(p string, id string) {
@@ -273,17 +271,15 @@ func (m *Mqtt) stopExecMqttByID(p string, id string) {
 		if pid > 0 {
 			syscall.Kill(pid, syscall.SIGTERM)
 			cs.IsRec = false
-			m.SendState(common.WorkflowStateTopic, cs)
 			removeProgress("stat_" + id + ".log")
 			rp.Message = "Success"
-			m.SendRespond(id, rp)
-			return
 		} else {
 			rp.Error = fmt.Errorf("error")
 			rp.Message = "Nothing to stop"
-			m.SendRespond(id, rp)
-			return
 		}
+		m.SendRespond(id, rp)
+		m.SendState(common.ExecStateTopic, "Off")
+		return
 	}
 
 	err := Cmd[id].Stop()
@@ -294,16 +290,11 @@ func (m *Mqtt) stopExecMqttByID(p string, id string) {
 		return
 	}
 
-	src, _ := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap)$`, common.EP)
-
-	if src == true {
-		m.SendProgress(false)
-	}
-
 	removeProgress("stat_" + id + ".log")
 
 	rp.Message = "Success"
 	m.SendRespond(id, rp)
+	m.SendState(common.ExecStateTopic, "Off")
 }
 
 func (m *Mqtt) cmdStatMqtt(p string, id string) {
@@ -474,12 +465,14 @@ func (m *Mqtt) getReportMqtt(p string, id string) {
 }
 
 var Ticker *time.Ticker
+var tick bool
 
 func (m *Mqtt) SendProgress(on bool) {
 	log.Debug().Str("source", "CAP").Msg("SendProgress")
 	rp := &MqttPayload{Action: "progress"}
-	if on {
+	if on && !tick {
 		Ticker = time.NewTicker(1000 * time.Millisecond)
+		tick = true
 		go func() {
 			for range Ticker.C {
 				pid := pgutil.GetPID()
@@ -509,9 +502,28 @@ func (m *Mqtt) SendProgress(on bool) {
 		}()
 	}
 
-	if on == false {
+	if !on && tick {
+		tick = false
 		Ticker.Stop()
 		rp.Message = "Off"
 		m.SendMessage(common.ServiceDataTopic+common.EP, rp)
+	}
+}
+
+func (m *Mqtt) execState(p *paho.Publish) {
+	log.Debug().Str("source", "MQTT").Str("json", string(p.Payload)).Msg("Got Exec State: " + string(p.Payload))
+	src, _ := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap)$`, common.EP)
+	if src {
+		data := string(p.Payload)
+		if data == "On" {
+			pid := pgutil.GetPID()
+			if pid != 0 {
+				m.SendProgress(true)
+				return
+			}
+		}
+		if data == "Off" {
+			m.SendProgress(false)
+		}
 	}
 }

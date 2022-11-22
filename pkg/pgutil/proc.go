@@ -44,6 +44,6 @@ func GetPID() int {
 	parts := strings.Split(string(out), "\n")
 	regexp.MustCompile(`[\r\n]+`).Split(parts[0], -1)
 	pid, _ := strconv.Atoi(string([]byte(parts[0])))
-	fmt.Println(pid)
+	//fmt.Println(pid)
 	return pid
 }
