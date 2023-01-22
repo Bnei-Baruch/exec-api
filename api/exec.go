@@ -192,7 +192,7 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 
 	log.Debug().Str("source", "EXEC").Str("action", p).Msg("startExecMqttByID: Start Exec")
 	// <-- For Ingest capture only -- //
-	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap)$`, common.EP)
+	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap|livecap1|livecap2)$`, common.EP)
 	if err != nil {
 		rp.Error = err
 		log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: regexp failed")
@@ -206,7 +206,7 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 		var ID string
 		u, _ := json.Marshal(cs)
 		log.Debug().Str("source", "EXEC").RawJSON("json", u).Msg("startExecMqttByID: GetState")
-		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" || common.EP == "testmaincap" {
+		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" || common.EP == "testmaincap" || common.EP == "livecap1" || common.EP == "livecap2" {
 			ID = cs.CaptureID
 		}
 		if common.EP == "mltbackup" || common.EP == "backupcap" {
