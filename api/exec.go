@@ -231,7 +231,8 @@ func (m *Mqtt) startExecMqttByID(p string, id string) {
 				args[k] = strings.Replace(args[k], "NAME", ID, 1)
 			case "/opt/backup/NAME.mp4":
 				args[k] = "/opt/backup/" + ID + ".mp4"
-
+			case "/Volumes/FILES/NAME.mp4":
+				args[k] = "/Volumes/FILES/" + ID + ".mp4"
 			}
 		}
 	}
