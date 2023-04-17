@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/middleware"
 	"github.com/coreos/go-oidc"
-	"github.com/eclipse/paho.golang/autopaho"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog/log"
@@ -15,8 +17,7 @@ type App struct {
 	Router        *mux.Router
 	Handler       http.Handler
 	tokenVerifier *oidc.IDTokenVerifier
-	MQ            MQ
-	mqtt          *autopaho.ConnectionManager
+	Msg           mqtt.Client
 }
 
 func (a *App) Initialize(accountsUrl string, skipAuth bool) {
@@ -100,8 +101,18 @@ func (a *App) initializeRoutes() {
 }
 
 func (a *App) initMQTT() {
-	a.MQ = NewMqtt(a.mqtt)
-	if err := a.MQ.Init(); err != nil {
-		log.Fatal().Str("source", "MQTT").Err(err).Msg("initialize mqtt")
+
+	opts := mqtt.NewClientOptions()
+	opts.AddBroker(fmt.Sprintf("ssl://%s", common.SERVER))
+	opts.SetClientID(common.EP + "-exec_mqtt_client")
+	opts.SetUsername(common.USERNAME)
+	opts.SetPassword(common.PASSWORD)
+	opts.SetAutoReconnect(true)
+	opts.SetOnConnectHandler(a.SubMQTT)
+	opts.SetConnectionLostHandler(a.LostMQTT)
+	a.Msg = mqtt.NewClient(opts)
+	if token := a.Msg.Connect(); token.Wait() && token.Error() != nil {
+		err := token.Error()
+		log.Fatal().Str("source", "MQTT").Err(err).Msg("initialize mqtt listener")
 	}
 }

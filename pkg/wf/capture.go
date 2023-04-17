@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Bnei-Baruch/exec-api/common"
-	"github.com/eclipse/paho.golang/paho"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"net/http"
@@ -128,9 +128,9 @@ func GetState() *CaptureState {
 	return cs
 }
 
-func (w *WorkFlow) SetState(m *paho.Publish) {
+func SetState(c mqtt.Client, m mqtt.Message) {
 	cs := &CaptureState{}
-	err := json.Unmarshal(m.Payload, &cs)
+	err := json.Unmarshal(m.Payload(), &cs)
 	if err != nil {
 		log.Error().Str("source", "CAP").Err(err).Msg("get state")
 	}
