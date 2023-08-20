@@ -23,6 +23,11 @@ type MqttPayload struct {
 }
 
 func (a *App) SubMQTT(c mqtt.Client) {
+	mqtt.DEBUG = NewPahoLogAdapter(zerolog.InfoLevel)
+	mqtt.WARN = NewPahoLogAdapter(zerolog.WarnLevel)
+	mqtt.CRITICAL = NewPahoLogAdapter(zerolog.ErrorLevel)
+	mqtt.ERROR = NewPahoLogAdapter(zerolog.ErrorLevel)
+
 	log.Info().Str("source", "MQTT").Msg("- Connected -")
 
 	if token := a.Msg.Publish(common.ExecStatusTopic, byte(2), true, []byte("Online")); token.Wait() && token.Error() != nil {
@@ -140,13 +145,6 @@ func (a *App) SendMessage(topic string, p *MqttPayload) {
 	}
 
 	log.Debug().Str("source", "MQTT").Str("json", string(message)).Msg("Publish: Topic - " + topic)
-}
-
-func (a *App) InitLogMQTT() {
-	mqtt.DEBUG = NewPahoLogAdapter(zerolog.InfoLevel)
-	mqtt.WARN = NewPahoLogAdapter(zerolog.WarnLevel)
-	mqtt.CRITICAL = NewPahoLogAdapter(zerolog.ErrorLevel)
-	mqtt.ERROR = NewPahoLogAdapter(zerolog.ErrorLevel)
 }
 
 type PahoLogAdapter struct {
