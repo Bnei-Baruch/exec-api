@@ -25,6 +25,7 @@ var (
 	DEBUG = os.Getenv("DEBUG")
 	WFCAP = os.Getenv("WF_CAP")
 
+	ExecStatusTopic      = "exec/status/" + EP + "/"
 	ExecServiceTopic     = "exec/service/" + EP + "/#"
 	ExecStateTopic       = "exec/state/" + EP
 	WorkflowServiceTopic = "workflow/service/capture/" + EP
