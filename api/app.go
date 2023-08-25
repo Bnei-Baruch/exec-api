@@ -11,7 +11,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/rs/zerolog/log"
 	"net/http"
-	"time"
 )
 
 type App struct {
@@ -108,8 +107,6 @@ func (a *App) initMQTT() {
 	opts.SetClientID(common.EP + "-exec_mqtt_client")
 	opts.SetUsername(common.USERNAME)
 	opts.SetPassword(common.PASSWORD)
-	opts.SetKeepAlive(10 * time.Second)
-	opts.SetPingTimeout(5 * time.Second)
 	opts.SetAutoReconnect(true)
 	opts.SetOnConnectHandler(a.SubMQTT)
 	opts.SetConnectionLostHandler(a.LostMQTT)
