@@ -30,29 +30,29 @@ func (a *App) SubMQTT(c mqtt.Client) {
 
 	log.Info().Str("source", "MQTT").Msg("- Connected -")
 
-	if token := a.Msg.Publish(common.ExecStatusTopic, byte(2), true, []byte("Online")); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Publish(common.ExecStatusTopic, byte(1), true, []byte("Online")); token.Wait() && token.Error() != nil {
 		log.Error().Str("source", "MQTT").Err(token.Error()).Msg("Send status")
 	}
 
-	if token := a.Msg.Subscribe(common.ExecServiceTopic, byte(2), a.execMessage); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.ExecServiceTopic, byte(1), a.execMessage); token.Wait() && token.Error() != nil {
 		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
 		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.ExecServiceTopic)
 	}
 
-	if token := a.Msg.Subscribe(common.ExecStateTopic, byte(2), a.ExecState); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.ExecStateTopic, byte(1), a.ExecState); token.Wait() && token.Error() != nil {
 		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
 		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.ExecStateTopic)
 	}
 
-	if token := a.Msg.Subscribe(common.WorkflowServiceTopic, byte(2), wf.MqttMessage); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.WorkflowServiceTopic, byte(1), wf.MqttMessage); token.Wait() && token.Error() != nil {
 		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
 		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.WorkflowServiceTopic)
 	}
 
-	if token := a.Msg.Subscribe(common.WorkflowStateTopic, byte(2), wf.SetState); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Subscribe(common.WorkflowStateTopic, byte(1), wf.SetState); token.Wait() && token.Error() != nil {
 		log.Fatal().Str("source", "MQTT").Err(token.Error()).Msg("Subscription error")
 	} else {
 		log.Info().Str("source", "MQTT").Msg("Subscription - " + common.WorkflowStateTopic)
@@ -120,7 +120,7 @@ func (a *App) SendRespond(id string, m *MqttPayload) {
 	}
 
 	text := fmt.Sprintf(string(message))
-	if token := a.Msg.Publish(topic, byte(2), false, text); token.Wait() && token.Error() != nil {
+	if token := a.Msg.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
 		log.Error().Str("source", "MQTT").Err(err).Msg("Send Respond")
 	}
 }

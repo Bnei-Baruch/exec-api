@@ -109,10 +109,11 @@ func (a *App) initMQTT() {
 	opts.SetUsername(common.USERNAME)
 	opts.SetPassword(common.PASSWORD)
 	opts.SetKeepAlive(10 * time.Second)
+	opts.SetPingTimeout(5 * time.Second)
 	opts.SetAutoReconnect(true)
 	opts.SetOnConnectHandler(a.SubMQTT)
 	opts.SetConnectionLostHandler(a.LostMQTT)
-	opts.SetBinaryWill(common.ExecStatusTopic, []byte("Offline"), byte(2), true)
+	opts.SetBinaryWill(common.ExecStatusTopic, []byte("Offline"), byte(1), true)
 	a.Msg = mqtt.NewClient(opts)
 	if token := a.Msg.Connect(); token.Wait() && token.Error() != nil {
 		err := token.Error()
