@@ -2,10 +2,9 @@ package api
 
 import (
 	"github.com/Bnei-Baruch/exec-api/common"
-	"github.com/Bnei-Baruch/exec-api/pkg/httputil"
 	"github.com/Bnei-Baruch/exec-api/pkg/pgutil"
+	"github.com/gin-gonic/gin"
 	"github.com/go-cmd/cmd"
-	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,73 +12,65 @@ import (
 	"time"
 )
 
-func (a *App) getFilesList(w http.ResponseWriter, r *http.Request) {
+func getFilesList(c *gin.Context) {
 
 	var list []string
 	files, err := ioutil.ReadDir(common.CapPath)
 	if err != nil {
-		httputil.RespondWithError(w, http.StatusNotFound, "Not found")
+		c.AbortWithStatus(http.StatusNotFound)
 	}
 
 	for _, f := range files {
 		list = append(list, f.Name())
 	}
 
-	httputil.RespondWithJSON(w, http.StatusOK, list)
+	c.JSON(http.StatusOK, list)
 }
 
-func (a *App) getData(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	file := vars["file"]
+func getData(c *gin.Context) {
+	file := c.Params.ByName("file")
 
 	if _, err := os.Stat(common.CapPath + file); os.IsNotExist(err) {
-		httputil.RespondWithError(w, http.StatusNotFound, "Not found")
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
-	httputil.RespondSuccess(w)
+	c.JSON(http.StatusOK, gin.H{"result": "success"})
 }
 
-func (a *App) getFile(w http.ResponseWriter, r *http.Request) {
+func getFile(c *gin.Context) {
+	file := c.Params.ByName("file")
 
-	vars := mux.Vars(r)
-	file := vars["file"]
-
-	http.ServeFile(w, r, common.CapPath+file)
+	http.ServeFile(c.Writer, c.Request, common.CapPath+file)
 }
 
-func (a *App) isAlive(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	id := vars["id"]
+func isAlive(c *gin.Context) {
+	id := c.Params.ByName("id")
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
 		isruning, err := pgutil.PidExists(status.PID)
 		if err != nil {
-			httputil.NewInternalError(err).Abort(w, r)
+			NewBadRequestError(err).Abort(c)
 			return
 		}
 		if isruning {
-			httputil.RespondSuccess(w)
+			c.JSON(http.StatusOK, gin.H{"result": "success"})
 			return
 		}
 	}
 
-	httputil.RespondWithError(w, http.StatusNotFound, "died")
+	c.AbortWithStatus(http.StatusNotFound)
 }
 
-func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
+func startExec(c *gin.Context) {
+	ep := c.Params.ByName("ep")
 
-	vars := mux.Vars(r)
-	ep := vars["ep"]
-
-	c, err := getConf()
+	cfg, err := getConf()
 	if err != nil {
-		c, err = getJson(ep)
+		cfg, err = getJson(ep)
 		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			NewBadRequestError(err).Abort(c)
 			return
 		}
 	}
@@ -87,7 +78,7 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 	var service string
 	var args []string
 	var id string
-	for _, v := range c.Services {
+	for _, v := range cfg.Services {
 		id = v.ID
 		service = v.Name
 		args = v.Args
@@ -129,25 +120,24 @@ func (a *App) startExec(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: return exec report
-	httputil.RespondSuccess(w)
+	c.JSON(http.StatusOK, gin.H{"result": "success"})
 }
 
-func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
+func stopExec(c *gin.Context) {
 
-	vars := mux.Vars(r)
-	ep := vars["ep"]
+	ep := c.Params.ByName("ep")
 
-	c, err := getConf()
+	cfg, err := getConf()
 	if err != nil {
-		c, err = getJson(ep)
+		cfg, err = getJson(ep)
 		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
 	}
 
 	var id string
-	for _, v := range c.Services {
+	for _, v := range cfg.Services {
 		id = v.ID
 
 		if Cmd[id] == nil {
@@ -163,27 +153,25 @@ func (a *App) stopExec(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: return report
-	httputil.RespondSuccess(w)
+	c.JSON(http.StatusOK, gin.H{"result": "success"})
 }
 
-func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
+func startExecByID(c *gin.Context) {
+	id := c.Params.ByName("id")
+	ep := c.Params.ByName("ep")
 
-	vars := mux.Vars(r)
-	id := vars["id"]
-	ep := vars["ep"]
-
-	c, err := getConf()
+	cfg, err := getConf()
 	if err != nil {
-		c, err = getJson(ep)
+		cfg, err = getJson(ep)
 		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"result": "Failed get config"})
 			return
 		}
 	}
 
 	var service string
 	var args []string
-	for _, v := range c.Services {
+	for _, v := range cfg.Services {
 		if v.ID == id {
 			service = v.Name
 			args = v.Args
@@ -192,7 +180,7 @@ func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(args) == 0 {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Id not found")
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"result": "Id not found"})
 		return
 	}
 
@@ -200,11 +188,11 @@ func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
 		status := Cmd[id].Status()
 		isruning, err := pgutil.PidExists(status.PID)
 		if err != nil {
-			httputil.NewInternalError(err).Abort(w, r)
+			NewInternalError(err).Abort(c)
 			return
 		}
 		if isruning {
-			httputil.RespondWithError(w, http.StatusBadRequest, "Already executed")
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"result": "Already executed"})
 			return
 		}
 	}
@@ -224,72 +212,66 @@ func (a *App) startExecByID(w http.ResponseWriter, r *http.Request) {
 	Cmd[id].Start()
 	status := Cmd[id].Status()
 	if status.Exit == 1 {
-		httputil.RespondWithError(w, http.StatusInternalServerError, "Run Exec Failed")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Run Exec Failed"})
 		return
 	}
 
-	httputil.RespondSuccess(w)
+	c.JSON(http.StatusOK, gin.H{"result": "success"})
 }
 
-func (a *App) stopExecByID(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	id := vars["id"]
+func stopExecByID(c *gin.Context) {
+	id := c.Params.ByName("id")
 
 	if Cmd[id] == nil {
-		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to stop")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"result": "Nothing to stop"})
 		return
 	}
 
 	err := Cmd[id].Stop()
 	if err != nil {
-		httputil.NewUnauthorizedError(err).Abort(w, r)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Stop failed"})
 		return
 	}
 
 	removeProgress("stat_" + id + ".log")
 
-	httputil.RespondSuccess(w)
+	c.JSON(http.StatusOK, gin.H{"result": "success"})
 }
 
-func (a *App) cmdStat(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	id := vars["id"]
+func cmdStat(c *gin.Context) {
+	id := c.Params.ByName("id")
 
 	if Cmd[id] == nil {
-		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"result": "Nothing to show"})
 		return
 	}
 
 	status := Cmd[id].Status()
 
-	httputil.RespondWithJSON(w, http.StatusOK, status)
+	c.JSON(http.StatusOK, status)
 
 }
 
-func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
-
+func execStatusByID(c *gin.Context) {
 	st := make(map[string]interface{})
-	vars := mux.Vars(r)
-	id := vars["id"]
-	ep := vars["ep"]
+	id := c.Params.ByName("id")
+	ep := c.Params.ByName("ep")
 
 	if Cmd[id] == nil {
-		httputil.RespondWithError(w, http.StatusNotFound, "Nothing to show")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"result": "Nothing to show"})
 		return
 	}
 
-	c, err := getConf()
+	cfg, err := getConf()
 	if err != nil {
-		c, err = getJson(ep)
+		cfg, err = getJson(ep)
 		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"result": "Failed get config"})
 			return
 		}
 	}
 
-	for _, i := range c.Services {
+	for _, i := range cfg.Services {
 		if id == i.ID {
 			st["name"] = i.Name
 			st["id"] = i.ID
@@ -309,7 +291,7 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 	status := Cmd[id].Status()
 	isruning, err := pgutil.PidExists(status.PID)
 	if err != nil {
-		httputil.NewInternalError(err).Abort(w, r)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Failed to get status"})
 		return
 	}
 	st["alive"] = isruning
@@ -325,26 +307,24 @@ func (a *App) execStatusByID(w http.ResponseWriter, r *http.Request) {
 	st["start"] = status.StartTs
 	st["stop"] = status.StopTs
 
-	httputil.RespondWithJSON(w, http.StatusOK, st)
+	c.JSON(http.StatusOK, st)
 }
 
-func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
-
+func execStatus(c *gin.Context) {
 	var id string
 	var services []map[string]interface{}
-	vars := mux.Vars(r)
-	ep := vars["ep"]
+	ep := c.Params.ByName("ep")
 
-	c, err := getConf()
+	cfg, err := getConf()
 	if err != nil {
-		c, err = getJson(ep)
+		cfg, err = getJson(ep)
 		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, "Failed get config")
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"result": "Failed get config"})
 			return
 		}
 	}
 
-	for _, i := range c.Services {
+	for _, i := range cfg.Services {
 		st := make(map[string]interface{})
 		id = i.ID
 		st["name"] = i.Name
@@ -369,7 +349,7 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 			status := Cmd[id].Status()
 			isruning, err := pgutil.PidExists(status.PID)
 			if err != nil {
-				httputil.NewInternalError(err).Abort(w, r)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Failed to get status"})
 				return
 			}
 			st["alive"] = isruning
@@ -389,25 +369,21 @@ func (a *App) execStatus(w http.ResponseWriter, r *http.Request) {
 		services = append(services, st)
 	}
 
-	httputil.RespondWithJSON(w, http.StatusOK, services)
+	c.JSON(http.StatusOK, services)
 }
 
-func (a *App) sysStat(w http.ResponseWriter, r *http.Request) {
-
+func sysStat(c *gin.Context) {
 	temp := cmd.NewCmd("sensors")
 	tempStatus := <-temp.Start()
 
-	httputil.RespondWithJSON(w, http.StatusOK, tempStatus.Stdout)
-
+	c.JSON(http.StatusOK, tempStatus.Stdout)
 }
 
-func (a *App) getProgress(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	id := vars["id"]
+func getProgress(c *gin.Context) {
+	id := c.Params.ByName("id")
 
 	if Cmd[id] == nil {
-		httputil.RespondWithError(w, http.StatusNotFound, "died")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"result": "died"})
 		removeProgress("stat_" + id + ".log")
 		return
 	}
@@ -415,7 +391,7 @@ func (a *App) getProgress(w http.ResponseWriter, r *http.Request) {
 	status := Cmd[id].Status()
 	isruning, err := pgutil.PidExists(status.PID)
 	if err != nil {
-		httputil.RespondWithError(w, http.StatusNotFound, "died")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"result": "died"})
 		removeProgress("stat_" + id + ".log")
 		return
 	}
@@ -431,29 +407,24 @@ func (a *App) getProgress(w http.ResponseWriter, r *http.Request) {
 			ffjson[args[0]] = args[1]
 		}
 
-		httputil.RespondWithJSON(w, http.StatusOK, ffjson)
+		c.JSON(http.StatusOK, ffjson)
 	}
 }
 
-func (a *App) getReport(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	id := vars["id"]
+func getReport(c *gin.Context) {
+	id := c.Params.ByName("id")
 
 	progress := cmd.NewCmd("cat", "report_"+id+".log")
 	p := <-progress.Start()
 
-	httputil.RespondWithJSON(w, http.StatusOK, p)
-
+	c.JSON(http.StatusOK, p)
 }
 
-func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
+func startRemux(c *gin.Context) {
 	v := "2"
-	id := vars["id"]
-	ep := vars["ep"]
-	file := r.FormValue("file")
+	id := c.Params.ByName("id")
+	ep := c.Params.ByName("ep")
+	file := c.Query("file")
 
 	if ep == "fhd" {
 		v = "0"
@@ -471,7 +442,7 @@ func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
 		"-map", "0:v:" + v, "-map", "0:m:language:" + id, "-c", "copy", common.CapPath + ep + "_" + id + "_" + file}
 
 	if len(args) == 0 {
-		httputil.RespondWithError(w, http.StatusBadRequest, "Id not found")
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"result": "Id not found"})
 		return
 	}
 
@@ -479,11 +450,11 @@ func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
 		status := Cmd[id].Status()
 		isruning, err := pgutil.PidExists(status.PID)
 		if err != nil {
-			httputil.NewInternalError(err).Abort(w, r)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Failed to get status"})
 			return
 		}
 		if isruning {
-			httputil.RespondWithError(w, http.StatusBadRequest, "Already executed")
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"result": "Already executed"})
 			return
 		}
 	}
@@ -496,9 +467,9 @@ func (a *App) startRemux(w http.ResponseWriter, r *http.Request) {
 	Cmd[id].Start()
 	status := Cmd[id].Status()
 	if status.Exit == 1 {
-		httputil.RespondWithError(w, http.StatusInternalServerError, "Run Exec Failed")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Run Exec Failed"})
 		return
 	}
 
-	httputil.RespondSuccess(w)
+	c.JSON(http.StatusOK, gin.H{"result": "success"})
 }
