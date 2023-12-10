@@ -3,9 +3,9 @@ package wf
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/common"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -155,7 +155,7 @@ func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
 	log.Info().Str("source", "WF").Str("action", ep).RawJSON("json", u).Msg("post to MDB")
 	body := strings.NewReader(string(u))
-	req, err := http.NewRequest("POST", common.MdbUrl+ep, body)
+	req, err := http.NewRequest("POST", viper.GetString("wokrflow.mdb_url")+ep, body)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (m *MdbPayload) PostMDB(ep string) error {
 }
 
 func (w *WfdbCapture) GetWFDB(id string) error {
-	req, err := http.NewRequest("GET", common.WfdbUrl+"/ingest/"+id, nil)
+	req, err := http.NewRequest("GET", viper.GetString("workflow.wfdb_url")+"/ingest/"+id, nil)
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func (w *WfdbCapture) GetWFDB(id string) error {
 }
 
 func (w *WfdbCapture) GetIngestState(id string) error {
-	req, err := http.NewRequest("GET", common.WfdbUrl+"/state/ingest/"+id, nil)
+	req, err := http.NewRequest("GET", viper.GetString("workflow.wfdb_url")+"/state/ingest/"+id, nil)
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func (w *WfdbCapture) PutWFDB(action string, ep string) error {
 	u, _ := json.Marshal(w)
 	log.Info().Str("source", "WF").Str("action", action).RawJSON("json", u).Msg("put to WFDB")
 	body := strings.NewReader(string(u))
-	req, err := http.NewRequest("PUT", common.WfdbUrl+ep+w.CaptureID, body)
+	req, err := http.NewRequest("PUT", viper.GetString("workflow.wfdb_url")+ep+w.CaptureID, body)
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (w *CaptureFlow) PutFlow() error {
 	u, _ := json.Marshal(w)
 	log.Info().Str("source", "WF").Str("action", "workflow").RawJSON("json", u).Msg("send to workflow")
 	body := strings.NewReader(string(u))
-	req, err := http.NewRequest("PUT", common.WfApiUrl, body)
+	req, err := http.NewRequest("PUT", viper.GetString("workflow.wfapi_url"), body)
 	if err != nil {
 		return err
 	}
@@ -280,15 +280,15 @@ func (w *CaptureFlow) PutFlow() error {
 func GetStationID(id string) string {
 	switch id {
 	case "mltcap":
-		return common.MltMain
+		return viper.GetString("workflow.mlt_main")
 	case "mltbackup":
-		return common.MltBackup
+		return viper.GetString("workflow.mlt_backup")
 	case "maincap":
-		return common.MainCap
+		return viper.GetString("workflow.main_cap")
 	case "backupcap":
-		return common.BackupCap
+		viper.GetString("workflow.backup_cap")
 	case "archcap":
-		return common.ArchCap
+		return viper.GetString("workflow.arch_cap")
 	}
 
 	return ""

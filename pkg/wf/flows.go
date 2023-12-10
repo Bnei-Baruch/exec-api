@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/common"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 	"io"
 	"os"
 	"strconv"
@@ -70,7 +70,7 @@ func SendMessage(topic string, m *MqttJson, c mqtt.Client) {
 
 func StartFlow(rp *MqttJson, c mqtt.Client) {
 
-	src := common.EP
+	src := viper.GetString("mqtt.client_id")
 	ep := "/ingest/"
 
 	if src == "archcap" {
@@ -82,7 +82,7 @@ func StartFlow(rp *MqttJson, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		log.Error().Str("source", "CAP").Err(rp.Error).Msg("StartFlow: CaptureID is empty")
 		rp.Message = "Internal error"
-		SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 		return
 	}
 
@@ -99,7 +99,7 @@ func StartFlow(rp *MqttJson, c mqtt.Client) {
 		log.Error().Str("source", "CAP").Err(err).Msg("StartFlow: PostMDB")
 		rp.Error = err
 		rp.Message = "MDB Request Failed"
-		SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 		return
 	}
 
@@ -117,17 +117,17 @@ func StartFlow(rp *MqttJson, c mqtt.Client) {
 		log.Error().Str("source", "CAP").Err(err).Msg("StartFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
-		SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 		return
 	}
 
 	rp.Message = "Success"
-	SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+	SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 }
 
 func LineFlow(rp *MqttJson, c mqtt.Client) {
 
-	src := common.EP
+	src := viper.GetString("mqtt.client_id")
 	ep := "/ingest/"
 
 	if src == "archcap" {
@@ -139,7 +139,7 @@ func LineFlow(rp *MqttJson, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		log.Error().Str("source", "CAP").Err(rp.Error).Msg("LineFlow: CaptureID is empty")
 		rp.Message = "Internal error"
-		SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 		return
 	}
 
@@ -158,17 +158,17 @@ func LineFlow(rp *MqttJson, c mqtt.Client) {
 		log.Error().Str("source", "CAP").Err(err).Msg("LineFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
-		SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 		return
 	}
 
 	rp.Message = "Success"
-	SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+	SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 }
 
 func StopFlow(rp *MqttJson, c mqtt.Client) {
 
-	src := common.EP
+	src := viper.GetString("mqtt.client_id")
 	ep := "/ingest/"
 
 	cs := GetState()
@@ -176,7 +176,7 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 		rp.Error = fmt.Errorf("error")
 		log.Error().Str("source", "CAP").Err(rp.Error).Msg("StopFlow: CaptureID is empty")
 		rp.Message = "Internal error"
-		SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 		return
 	}
 
@@ -185,7 +185,7 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 		StopName = strings.Replace(StopName, "_o_", "_s_", 1)
 	}
 
-	file, err := os.Open(common.CapPath + rp.ID + ".mp4")
+	file, err := os.Open(viper.GetString("workflow.capture_path") + rp.ID + ".mp4")
 	if err != nil {
 		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: Error open file")
 		return
@@ -272,7 +272,7 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: PutWFDB")
 		rp.Error = err
 		rp.Message = "WFDB Request Failed"
-		SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 		return
 	}
 
@@ -283,7 +283,7 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 	}
 
 	FullName := StopName + "_" + rp.ID + ".mp4"
-	err = os.Rename(common.CapPath+rp.ID+".mp4", common.CapPath+FullName)
+	err = os.Rename(viper.GetString("workflow.capture_path")+rp.ID+".mp4", viper.GetString("workflow.capture_path")+FullName)
 	if err != nil {
 		log.Error().Str("source", "CAP").Err(err).Msg("StopFlow: failed to rename file")
 		return
@@ -306,5 +306,5 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 	}
 
 	rp.Message = "Success"
-	SendMessage(common.WorkflowDataTopic+rp.Action, rp, c)
+	SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 }

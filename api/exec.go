@@ -3,12 +3,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/pgutil"
 	"github.com/Bnei-Baruch/exec-api/pkg/wf"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/go-cmd/cmd"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 	"os"
 	"regexp"
 	"strings"
@@ -46,7 +46,7 @@ func startExecMqtt(p string) {
 	rp := &MqttPayload{Action: p}
 	c, err := getConf()
 	if err != nil {
-		c, err = getJson(common.EP)
+		c, err = getJson(viper.GetString("mqtt.client_id"))
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
@@ -110,7 +110,7 @@ func stopExecMqtt(p string) {
 	rp := &MqttPayload{Action: p}
 	c, err := getConf()
 	if err != nil {
-		c, err = getJson(common.EP)
+		c, err = getJson(viper.GetString("mqtt.client_id"))
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
@@ -143,7 +143,7 @@ func startExecMqttByID(p string, id string) {
 	rp := &MqttPayload{Action: p}
 	c, err := getConf()
 	if err != nil {
-		c, err = getJson(common.EP)
+		c, err = getJson(viper.GetString("mqtt.client_id"))
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
@@ -192,7 +192,7 @@ func startExecMqttByID(p string, id string) {
 
 	log.Debug().Str("source", "EXEC").Str("action", p).Msg("startExecMqttByID: Start Exec")
 	// <-- For Ingest capture only -- //
-	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap|livecap1|livecap2)$`, common.EP)
+	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap|livecap1|livecap2)$`, viper.GetString("mqtt.client_id"))
 	if err != nil {
 		rp.Error = err
 		log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: regexp failed")
@@ -206,10 +206,10 @@ func startExecMqttByID(p string, id string) {
 		var ID string
 		u, _ := json.Marshal(cs)
 		log.Debug().Str("source", "EXEC").RawJSON("json", u).Msg("startExecMqttByID: GetState")
-		if common.EP == "mltcap" || common.EP == "maincap" || common.EP == "archcap" || common.EP == "testmaincap" || common.EP == "livecap1" || common.EP == "livecap2" {
+		if viper.GetString("mqtt.client_id") == "mltcap" || viper.GetString("mqtt.client_id") == "maincap" || viper.GetString("mqtt.client_id") == "archcap" || viper.GetString("mqtt.client_id") == "testmaincap" || viper.GetString("mqtt.client_id") == "livecap1" || viper.GetString("mqtt.client_id") == "livecap2" {
 			ID = cs.CaptureID
 		}
-		if common.EP == "mltbackup" || common.EP == "backupcap" {
+		if viper.GetString("mqtt.client_id") == "mltbackup" || viper.GetString("mqtt.client_id") == "backupcap" {
 			ID = cs.BackupID
 		}
 		if cs.CaptureID == "" {
@@ -259,7 +259,7 @@ func startExecMqttByID(p string, id string) {
 
 	rp.Message = "Success"
 	SendRespond(id, rp)
-	SendState(common.ExecStateTopic, "On")
+	SendState(viper.GetString("mqtt.exec_state_topic"), "On")
 }
 
 func stopExecMqttByID(p string, id string) {
@@ -279,7 +279,7 @@ func stopExecMqttByID(p string, id string) {
 			rp.Message = "Nothing to stop"
 		}
 		SendRespond(id, rp)
-		SendState(common.ExecStateTopic, "Off")
+		SendState(viper.GetString("mqtt.exec_state_topic"), "Off")
 		return
 	}
 
@@ -295,7 +295,7 @@ func stopExecMqttByID(p string, id string) {
 
 	rp.Message = "Success"
 	SendRespond(id, rp)
-	SendState(common.ExecStateTopic, "Off")
+	SendState(viper.GetString("mqtt.exec_state_topic"), "Off")
 }
 
 func cmdStatMqtt(p string, id string) {
@@ -330,7 +330,7 @@ func execStatusMqttByID(p string, id string) {
 
 	c, err := getConf()
 	if err != nil {
-		c, err = getJson(common.EP)
+		c, err = getJson(viper.GetString("mqtt.client_id"))
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
@@ -383,7 +383,7 @@ func execStatusMqtt(p string) {
 
 	c, err := getConf()
 	if err != nil {
-		c, err = getJson(common.EP)
+		c, err = getJson(viper.GetString("mqtt.client_id"))
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Failed get config"
@@ -470,6 +470,8 @@ var tick bool
 
 func SendProgress(on bool) {
 	log.Debug().Str("source", "CAP").Msg("SendProgress")
+	ExecDataTopic := viper.GetString("mqtt.exec_data_topic")
+	ClientID := viper.GetString("mqtt.client_id")
 	rp := &MqttPayload{Action: "progress"}
 	if on && !tick {
 		Ticker = time.NewTicker(1000 * time.Millisecond)
@@ -498,7 +500,7 @@ func SendProgress(on bool) {
 					rp.Message = "On"
 					rp.Data = ffjson
 				}
-				SendMessage(common.ServiceDataTopic+common.EP, rp)
+				SendMessage(ExecDataTopic+ClientID, rp)
 			}
 		}()
 	}
@@ -507,13 +509,13 @@ func SendProgress(on bool) {
 		tick = false
 		Ticker.Stop()
 		rp.Message = "Off"
-		SendMessage(common.ServiceDataTopic+common.EP, rp)
+		SendMessage(ExecDataTopic+ClientID, rp)
 	}
 }
 
 func ExecState(c mqtt.Client, m mqtt.Message) {
 	log.Debug().Str("source", "MQTT").Str("json", string(m.Payload())).Msg("Got Exec State: " + string(m.Payload()))
-	src, _ := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap)$`, common.EP)
+	src, _ := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap)$`, viper.GetString("mqtt.client_id"))
 	if src {
 		data := string(m.Payload())
 		if data == "On" {

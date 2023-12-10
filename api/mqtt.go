@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/wf"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
@@ -41,8 +40,8 @@ func (a *PahoLogAdapter) Printf(format string, v ...interface{}) {
 }
 
 func InitMQTT() error {
-	log.Info("MQTT: Init")
-	mqtt.DEBUG = NewPahoLogAdapter(log.DebugLevel)
+	log.Info("[InitMQTT] Init")
+	//mqtt.DEBUG = NewPahoLogAdapter(log.DebugLevel)
 	mqtt.WARN = NewPahoLogAdapter(log.WarnLevel)
 	mqtt.CRITICAL = NewPahoLogAdapter(log.PanicLevel)
 	mqtt.ERROR = NewPahoLogAdapter(log.ErrorLevel)
@@ -55,7 +54,7 @@ func InitMQTT() error {
 	opts.SetAutoReconnect(true)
 	opts.SetOnConnectHandler(SubMQTT)
 	opts.SetConnectionLostHandler(LostMQTT)
-	opts.SetBinaryWill(common.ExecStatusTopic, []byte("Offline"), byte(1), true)
+	opts.SetBinaryWill(viper.GetString("mqtt.status_topic"), []byte("Offline"), byte(1), true)
 	MQTT = mqtt.NewClient(opts)
 	if token := MQTT.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
@@ -65,46 +64,46 @@ func InitMQTT() error {
 
 func SubMQTT(c mqtt.Client) {
 	if token := MQTT.Publish(viper.GetString("mqtt.status_topic"), byte(1), true, []byte("Online")); token.Wait() && token.Error() != nil {
-		log.Errorf("MQTT: notify status error: %s", token.Error())
+		log.Errorf("[SubMQTT] notify status error: %s", token.Error())
 	} else {
-		log.Infof("MQTT: notify status to: %s", viper.GetString("mqtt.status_topic"))
+		log.Infof("[SubMQTT] notify status to: %s", viper.GetString("mqtt.status_topic"))
 	}
 
 	ExecServiceTopic := viper.GetString("mqtt.exec_service_topic")
 	if token := MQTT.Subscribe(ExecServiceTopic, byte(1), ExecMessage); token.Wait() && token.Error() != nil {
-		log.Errorf("MQTT: Subscribe error: %s", token.Error())
+		log.Errorf("[SubMQTT] Subscribe error: %s", token.Error())
 	} else {
-		log.Infof("MQTT: Subscribed to: %s", ExecServiceTopic)
+		log.Infof("[SubMQTT] Subscribed to: %s", ExecServiceTopic)
 	}
 
 	ExecStateTopic := viper.GetString("mqtt.exec_state_topic")
 	if token := MQTT.Subscribe(ExecStateTopic, byte(1), ExecState); token.Wait() && token.Error() != nil {
-		log.Errorf("MQTT: Subscribe error: %s", token.Error())
+		log.Errorf("[SubMQTT] Subscribe error: %s", token.Error())
 	} else {
-		log.Infof("MQTT: Subscribed to: %s", ExecStateTopic)
+		log.Infof("[SubMQTT] Subscribed to: %s", ExecStateTopic)
 	}
 
 	WorkflowServiceTopic := viper.GetString("mqtt.wf_service_topic")
 	if token := MQTT.Subscribe(WorkflowServiceTopic, byte(1), wf.MqttMessage); token.Wait() && token.Error() != nil {
-		log.Errorf("MQTT: Subscribe error: %s", token.Error())
+		log.Errorf("[SubMQTT] Subscribe error: %s", token.Error())
 	} else {
-		log.Infof("MQTT: Subscribed to: %s", WorkflowServiceTopic)
+		log.Infof("[SubMQTT] Subscribed to: %s", WorkflowServiceTopic)
 	}
 
 	WorkflowStateTopic := viper.GetString("mqtt.wf_state_topic")
 	if token := MQTT.Subscribe(WorkflowStateTopic, byte(1), wf.SetState); token.Wait() && token.Error() != nil {
-		log.Errorf("MQTT: Subscribe error: %s", token.Error())
+		log.Errorf("[SubMQTT] Subscribe error: %s", token.Error())
 	} else {
-		log.Infof("MQTT: Subscribed to: %s", WorkflowStateTopic)
+		log.Infof("[SubMQTT] Subscribed to: %s", WorkflowStateTopic)
 	}
 }
 
 func LostMQTT(c mqtt.Client, err error) {
-	log.Errorf("MQTT: Lost connection: %s", err)
+	log.Errorf("[LostMQTT] Lost connection: %s", err)
 }
 
 func ExecMessage(c mqtt.Client, m mqtt.Message) {
-	log.Debug("Received message: %s from topic: %s\n", m.Payload(), m.Topic())
+	log.Debugf("[ExecMessage] topic: %s |  message: %s", m.Topic(), string(m.Payload()))
 
 	id := "false"
 	s := strings.Split(m.Topic(), "/")
@@ -149,11 +148,13 @@ func ExecMessage(c mqtt.Client, m mqtt.Message) {
 
 func SendRespond(id string, m *MqttPayload) {
 	var topic string
+	ExecDataTopic := viper.GetString("mqtt.exec_data_topic")
+	ClientID := viper.GetString("mqtt.client_id")
 
 	if id == "false" {
-		topic = common.ServiceDataTopic + common.EP
+		topic = ExecDataTopic + ClientID
 	} else {
-		topic = common.ServiceDataTopic + common.EP + "/" + id
+		topic = ExecDataTopic + ClientID + "/" + id
 	}
 	message, err := json.Marshal(m)
 	if err != nil {
@@ -161,18 +162,19 @@ func SendRespond(id string, m *MqttPayload) {
 	}
 
 	text := fmt.Sprintf(string(message))
+	fmt.Println(string(message))
+	log.Debugf("[SendRespond] topic: %s |  message: %s", topic, string(message))
 	if token := MQTT.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
 		log.Errorf("Send Respond: %s", err)
 	}
 }
 
 func SendState(topic string, state string) {
+	log.Debugf("[SendState] topic: %s |  message: %s", topic, state)
 
 	if token := MQTT.Publish(topic, byte(1), true, state); token.Wait() && token.Error() != nil {
 		log.Errorf("Send State: %s", token.Error())
 	}
-
-	log.Debug("Publish: Topic - " + topic)
 }
 
 func SendMessage(topic string, p *MqttPayload) {
@@ -181,9 +183,9 @@ func SendMessage(topic string, p *MqttPayload) {
 		log.Errorf("Message parsing: %s", err)
 	}
 
+	log.Debugf("[SendMessage] topic: %s |  message: %s", topic, message)
+
 	if token := MQTT.Publish(topic, byte(1), false, message); token.Wait() && token.Error() != nil {
 		log.Errorf("Send State: %s", token.Error())
 	}
-
-	log.Debug("Publish: Topic - " + topic)
 }

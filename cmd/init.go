@@ -15,7 +15,7 @@ import (
 )
 
 func Init() {
-	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, ForceQuote: false, DisableQuote: true})
 	if viper.GetString("mqtt.debug") == "true" {
 		log.SetLevel(log.DebugLevel)
 	} else {
@@ -27,7 +27,7 @@ func Init() {
 	} else {
 		log.Info("Failed to log to file, using default stderr")
 	}
-	log.Infof("Starting WF API server version %s", version.Version)
+	log.Infof("Starting EXEC API server version %s", version.Version)
 
 	// cors
 	corsConfig := cors.DefaultConfig()

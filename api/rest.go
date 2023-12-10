@@ -1,10 +1,10 @@
 package api
 
 import (
-	"github.com/Bnei-Baruch/exec-api/common"
 	"github.com/Bnei-Baruch/exec-api/pkg/pgutil"
 	"github.com/gin-gonic/gin"
 	"github.com/go-cmd/cmd"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,7 +15,7 @@ import (
 func getFilesList(c *gin.Context) {
 
 	var list []string
-	files, err := ioutil.ReadDir(common.CapPath)
+	files, err := ioutil.ReadDir(viper.GetString("workflow.capture_path"))
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 	}
@@ -30,7 +30,7 @@ func getFilesList(c *gin.Context) {
 func getData(c *gin.Context) {
 	file := c.Params.ByName("file")
 
-	if _, err := os.Stat(common.CapPath + file); os.IsNotExist(err) {
+	if _, err := os.Stat(viper.GetString("workflow.capture_path") + file); os.IsNotExist(err) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
@@ -41,7 +41,7 @@ func getData(c *gin.Context) {
 func getFile(c *gin.Context) {
 	file := c.Params.ByName("file")
 
-	http.ServeFile(c.Writer, c.Request, common.CapPath+file)
+	http.ServeFile(c.Writer, c.Request, viper.GetString("workflow.capture_path")+file)
 }
 
 func isAlive(c *gin.Context) {
@@ -438,8 +438,8 @@ func startRemux(c *gin.Context) {
 		v = "2"
 	}
 
-	args := []string{"-progress", "stat_" + id + ".log", "-hide_banner", "-y", "-i", common.CapPath + file,
-		"-map", "0:v:" + v, "-map", "0:m:language:" + id, "-c", "copy", common.CapPath + ep + "_" + id + "_" + file}
+	args := []string{"-progress", "stat_" + id + ".log", "-hide_banner", "-y", "-i", viper.GetString("workflow.capture_path") + file,
+		"-map", "0:v:" + v, "-map", "0:m:language:" + id, "-c", "copy", viper.GetString("workflow.capture_path") + ep + "_" + id + "_" + file}
 
 	if len(args) == 0 {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"result": "Id not found"})
