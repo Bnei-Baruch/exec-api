@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/rs/zerolog/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
@@ -117,14 +117,14 @@ func GetState() *CaptureState {
 	var cs *CaptureState
 	s, err := os.ReadFile("state.json")
 	if err != nil {
-		log.Error().Str("source", "CAP").Err(err).Msg("read file")
+		log.Errorf("[GetState]: Error read file: %s", err)
 	}
 	err = json.Unmarshal(s, &cs)
 	if err != nil {
-		log.Error().Str("source", "CAP").Err(err).Msg("Unmarshal state")
+		log.Errorf("[GetState]: Error Unmarshal state: %s", err)
 	}
 	u, _ := json.Marshal(cs)
-	log.Debug().Str("source", "CAP").RawJSON("json", u).Msg("get state")
+	log.Debugf("[GetState] : %s", u)
 	return cs
 }
 
@@ -132,13 +132,13 @@ func SetState(c mqtt.Client, m mqtt.Message) {
 	cs := &CaptureState{}
 	err := json.Unmarshal(m.Payload(), &cs)
 	if err != nil {
-		log.Error().Str("source", "CAP").Err(err).Msg("get state")
+		log.Errorf("[GetState]: Error Unmarshal state: %s", err)
 	}
 	u, _ := json.Marshal(cs)
-	log.Debug().Str("source", "CAP").RawJSON("json", u).Msg("set state")
+	log.Debugf("[SetState] : %s", u)
 	err = os.WriteFile("state.json", u, 0644)
 	if err != nil {
-		log.Error().Str("source", "CAP").Err(err).Msg("save state")
+		log.Errorf("[SetState]: Error save state: %s", err)
 	}
 
 	//pid := pgutil.GetPID()
@@ -153,7 +153,7 @@ func SetState(c mqtt.Client, m mqtt.Message) {
 
 func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
-	log.Info().Str("source", "WF").Str("action", ep).RawJSON("json", u).Msg("post to MDB")
+	log.Debugf("[PostMDB] action: %s | json: %s", ep, u)
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("POST", viper.GetString("wokrflow.mdb_url")+ep, body)
 	if err != nil {
@@ -193,7 +193,7 @@ func (w *WfdbCapture) GetWFDB(id string) error {
 		return err
 	}
 
-	log.Debug().Str("source", "CAP").RawJSON("json", body).Msg("get WFDB")
+	log.Debugf("[GetWFDB] json: %s", body)
 	err = json.Unmarshal(body, &w)
 	if err != nil {
 		return err
@@ -220,7 +220,7 @@ func (w *WfdbCapture) GetIngestState(id string) error {
 		return err
 	}
 
-	log.Debug().Str("source", "CAP").RawJSON("json", body).Msg("get WFDB")
+	log.Debugf("[GetIngestState] json: %s", body)
 	err = json.Unmarshal(body, &w)
 	if err != nil {
 		return err
@@ -231,7 +231,7 @@ func (w *WfdbCapture) GetIngestState(id string) error {
 
 func (w *WfdbCapture) PutWFDB(action string, ep string) error {
 	u, _ := json.Marshal(w)
-	log.Info().Str("source", "WF").Str("action", action).RawJSON("json", u).Msg("put to WFDB")
+	log.Debugf("[PutWFDB] action: %s | json: %s", action, u)
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", viper.GetString("workflow.wfdb_url")+ep+w.CaptureID, body)
 	if err != nil {
@@ -255,7 +255,7 @@ func (w *WfdbCapture) PutWFDB(action string, ep string) error {
 
 func (w *CaptureFlow) PutFlow() error {
 	u, _ := json.Marshal(w)
-	log.Info().Str("source", "WF").Str("action", "workflow").RawJSON("json", u).Msg("send to workflow")
+	log.Debugf("[PutFlow] json: %s", u)
 	body := strings.NewReader(string(u))
 	req, err := http.NewRequest("PUT", viper.GetString("workflow.wfapi_url"), body)
 	if err != nil {

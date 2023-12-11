@@ -42,7 +42,7 @@ func (a *PahoLogAdapter) Printf(format string, v ...interface{}) {
 func InitMQTT() error {
 	log.Info("[InitMQTT] Init")
 	//mqtt.DEBUG = NewPahoLogAdapter(log.DebugLevel)
-	mqtt.WARN = NewPahoLogAdapter(log.WarnLevel)
+	//mqtt.WARN = NewPahoLogAdapter(log.WarnLevel)
 	mqtt.CRITICAL = NewPahoLogAdapter(log.PanicLevel)
 	mqtt.ERROR = NewPahoLogAdapter(log.ErrorLevel)
 
@@ -162,7 +162,6 @@ func SendRespond(id string, m *MqttPayload) {
 	}
 
 	text := fmt.Sprintf(string(message))
-	fmt.Println(string(message))
 	log.Debugf("[SendRespond] topic: %s |  message: %s", topic, string(message))
 	if token := MQTT.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
 		log.Errorf("Send Respond: %s", err)

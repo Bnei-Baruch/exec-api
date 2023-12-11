@@ -7,7 +7,7 @@ import (
 	"github.com/Bnei-Baruch/exec-api/pkg/wf"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/go-cmd/cmd"
-	"github.com/rs/zerolog/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"regexp"
@@ -190,12 +190,11 @@ func startExecMqttByID(p string, id string) {
 		Cmd = make(map[string]*cmd.Cmd)
 	}
 
-	log.Debug().Str("source", "EXEC").Str("action", p).Msg("startExecMqttByID: Start Exec")
+	log.Debugf("[startExecMqttByID] Action: %s", p)
 	// <-- For Ingest capture only -- //
 	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap|livecap1|livecap2)$`, viper.GetString("mqtt.client_id"))
 	if err != nil {
 		rp.Error = err
-		log.Error().Str("source", "EXEC").Err(rp.Error).Msg("startExecMqttByID: regexp failed")
 		rp.Message = "Internal error"
 		SendRespond(id, rp)
 	}
@@ -205,7 +204,7 @@ func startExecMqttByID(p string, id string) {
 	if src == true {
 		var ID string
 		u, _ := json.Marshal(cs)
-		log.Debug().Str("source", "EXEC").RawJSON("json", u).Msg("startExecMqttByID: GetState")
+		log.Debugf("[startExecMqttByID] Got state: %s", u)
 		if viper.GetString("mqtt.client_id") == "mltcap" || viper.GetString("mqtt.client_id") == "maincap" || viper.GetString("mqtt.client_id") == "archcap" || viper.GetString("mqtt.client_id") == "testmaincap" || viper.GetString("mqtt.client_id") == "livecap1" || viper.GetString("mqtt.client_id") == "livecap2" {
 			ID = cs.CaptureID
 		}
@@ -254,8 +253,6 @@ func startExecMqttByID(p string, id string) {
 		SendRespond(id, rp)
 		return
 	}
-
-	log.Debug().Str("source", "CAP").Msg("start exec")
 
 	rp.Message = "Success"
 	SendRespond(id, rp)
@@ -455,7 +452,6 @@ func getProgressMqtt(p string, id string) {
 }
 
 func getReportMqtt(p string, id string) {
-
 	rp := &MqttPayload{Action: p}
 	progress := cmd.NewCmd("cat", "report_"+id+".log")
 	pg := <-progress.Start()
@@ -469,7 +465,6 @@ var Ticker *time.Ticker
 var tick bool
 
 func SendProgress(on bool) {
-	log.Debug().Str("source", "CAP").Msg("SendProgress")
 	ExecDataTopic := viper.GetString("mqtt.exec_data_topic")
 	ClientID := viper.GetString("mqtt.client_id")
 	rp := &MqttPayload{Action: "progress"}
@@ -514,7 +509,7 @@ func SendProgress(on bool) {
 }
 
 func ExecState(c mqtt.Client, m mqtt.Message) {
-	log.Debug().Str("source", "MQTT").Str("json", string(m.Payload())).Msg("Got Exec State: " + string(m.Payload()))
+	log.Debugf("[ExecState] : %s", string(m.Payload()))
 	src, _ := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap)$`, viper.GetString("mqtt.client_id"))
 	if src {
 		data := string(m.Payload())

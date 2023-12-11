@@ -25,9 +25,9 @@ func Init() {
 	if err == nil {
 		log.SetOutput(file)
 	} else {
-		log.Info("Failed to log to file, using default stderr")
+		log.Errorf("Failed to log to file, using default stderr")
 	}
-	log.Infof("Starting EXEC API server version %s", version.Version)
+	log.Infof(" - Starting EXEC API server version %s - ", version.Version)
 
 	// cors
 	corsConfig := cors.DefaultConfig()
@@ -42,7 +42,7 @@ func Init() {
 		issuer := viper.GetString("authentication.issuer")
 		oidcProvider, err := oidc.NewProvider(context.TODO(), issuer)
 		if err != nil {
-			log.Infof("KC init error: %s", err)
+			log.Errorf("KC init error: %s", err)
 			return
 		}
 		oidcIDTokenVerifier = oidcProvider.Verifier(&oidc.Config{
