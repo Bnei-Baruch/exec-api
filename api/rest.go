@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/Bnei-Baruch/exec-api/pkg/pgutil"
+	"github.com/Bnei-Baruch/exec-api/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-cmd/cmd"
 	"github.com/spf13/viper"
@@ -49,7 +49,7 @@ func isAlive(c *gin.Context) {
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := pgutil.PidExists(status.PID)
+		isruning, err := utils.PidExists(status.PID)
 		if err != nil {
 			NewBadRequestError(err).Abort(c)
 			return
@@ -88,7 +88,7 @@ func startExec(c *gin.Context) {
 
 		if Cmd[id] != nil {
 			status := Cmd[id].Status()
-			isruning, err := pgutil.PidExists(status.PID)
+			isruning, err := utils.PidExists(status.PID)
 			if err != nil {
 				continue
 			}
@@ -186,7 +186,7 @@ func startExecByID(c *gin.Context) {
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := pgutil.PidExists(status.PID)
+		isruning, err := utils.PidExists(status.PID)
 		if err != nil {
 			NewInternalError(err).Abort(c)
 			return
@@ -289,7 +289,7 @@ func execStatusByID(c *gin.Context) {
 	}
 
 	status := Cmd[id].Status()
-	isruning, err := pgutil.PidExists(status.PID)
+	isruning, err := utils.PidExists(status.PID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Failed to get status"})
 		return
@@ -347,7 +347,7 @@ func execStatus(c *gin.Context) {
 			}
 
 			status := Cmd[id].Status()
-			isruning, err := pgutil.PidExists(status.PID)
+			isruning, err := utils.PidExists(status.PID)
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Failed to get status"})
 				return
@@ -389,7 +389,7 @@ func getProgress(c *gin.Context) {
 	}
 
 	status := Cmd[id].Status()
-	isruning, err := pgutil.PidExists(status.PID)
+	isruning, err := utils.PidExists(status.PID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"result": "died"})
 		removeProgress("stat_" + id + ".log")
@@ -448,7 +448,7 @@ func startRemux(c *gin.Context) {
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := pgutil.PidExists(status.PID)
+		isruning, err := utils.PidExists(status.PID)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"result": "Failed to get status"})
 			return

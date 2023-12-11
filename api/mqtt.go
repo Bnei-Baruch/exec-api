@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/pkg/wf"
+	"github.com/Bnei-Baruch/exec-api/wf"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"

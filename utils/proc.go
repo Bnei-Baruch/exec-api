@@ -1,4 +1,4 @@
-package pgutil
+package utils
 
 import (
 	"fmt"

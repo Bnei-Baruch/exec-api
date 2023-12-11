@@ -3,8 +3,8 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Bnei-Baruch/exec-api/pkg/pgutil"
-	"github.com/Bnei-Baruch/exec-api/pkg/wf"
+	"github.com/Bnei-Baruch/exec-api/utils"
+	"github.com/Bnei-Baruch/exec-api/wf"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/go-cmd/cmd"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +23,7 @@ func isAliveMqtt(p string, id string) {
 	rp := &MqttPayload{Action: p}
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := pgutil.PidExists(status.PID)
+		isruning, err := utils.PidExists(status.PID)
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Error"
@@ -68,7 +68,7 @@ func startExecMqtt(p string) {
 
 		if Cmd[id] != nil {
 			status := Cmd[id].Status()
-			isruning, err := pgutil.PidExists(status.PID)
+			isruning, err := utils.PidExists(status.PID)
 			if err != nil {
 				continue
 			}
@@ -171,7 +171,7 @@ func startExecMqttByID(p string, id string) {
 
 	if Cmd[id] != nil {
 		status := Cmd[id].Status()
-		isruning, err := pgutil.PidExists(status.PID)
+		isruning, err := utils.PidExists(status.PID)
 		if err != nil {
 			rp.Error = err
 			rp.Message = "Internal error"
@@ -265,7 +265,7 @@ func stopExecMqttByID(p string, id string) {
 	cs := wf.GetState()
 
 	if Cmd[id] == nil {
-		pid := pgutil.GetPID()
+		pid := utils.GetPID()
 		if pid > 0 {
 			syscall.Kill(pid, syscall.SIGTERM)
 			cs.IsRec = false
@@ -346,7 +346,7 @@ func execStatusMqttByID(p string, id string) {
 	}
 
 	status := Cmd[id].Status()
-	isruning, err := pgutil.PidExists(status.PID)
+	isruning, err := utils.PidExists(status.PID)
 	if err != nil {
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Cmd not found"
@@ -404,7 +404,7 @@ func execStatusMqtt(p string) {
 			st["alive"] = false
 		} else {
 			status := Cmd[id].Status()
-			isruning, err := pgutil.PidExists(status.PID)
+			isruning, err := utils.PidExists(status.PID)
 			if err != nil {
 				rp.Error = fmt.Errorf("error")
 				rp.Message = "Cmd not found"
@@ -473,7 +473,7 @@ func SendProgress(on bool) {
 		tick = true
 		go func() {
 			for range Ticker.C {
-				pid := pgutil.GetPID()
+				pid := utils.GetPID()
 				if pid == 0 {
 					Ticker.Stop()
 					rp.Message = "Off"
@@ -514,7 +514,7 @@ func ExecState(c mqtt.Client, m mqtt.Message) {
 	if src {
 		data := string(m.Payload())
 		if data == "On" {
-			pid := pgutil.GetPID()
+			pid := utils.GetPID()
 			if pid != 0 {
 				SendProgress(true)
 				return
