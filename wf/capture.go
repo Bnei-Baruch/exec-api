@@ -155,7 +155,7 @@ func (m *MdbPayload) PostMDB(ep string) error {
 	u, _ := json.Marshal(m)
 	log.Debugf("[PostMDB] action: %s | json: %s", ep, u)
 	body := strings.NewReader(string(u))
-	req, err := http.NewRequest("POST", viper.GetString("wokrflow.mdb_url")+ep, body)
+	req, err := http.NewRequest("POST", viper.GetString("workflow.mdb_url")+ep, body)
 	if err != nil {
 		return err
 	}
