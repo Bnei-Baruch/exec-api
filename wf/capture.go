@@ -291,7 +291,7 @@ func GetStationID(id string) string {
 		return viper.GetString("workflow.arch_cap")
 	}
 
-	return ""
+	return "127.0.0.1"
 }
 
 func GetDateFromID(id string) string {

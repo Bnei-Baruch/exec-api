@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -23,7 +24,7 @@ type Service struct {
 }
 
 func getJson(ep string) (*Config, error) {
-	req, err := http.NewRequest("GET", os.Getenv("DB_URL")+ep, nil)
+	req, err := http.NewRequest("GET", viper.GetString("server.cfg_url")+ep, nil)
 	if err != nil {
 		return nil, err
 	}

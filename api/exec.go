@@ -192,7 +192,7 @@ func startExecMqttByID(p string, id string) {
 
 	log.Debugf("[startExecMqttByID] Action: %s", p)
 	// <-- For Ingest capture only -- //
-	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testmaincap|livecap1|livecap2)$`, viper.GetString("mqtt.client_id"))
+	src, err := regexp.MatchString(`^(mltcap|mltbackup|maincap|backupcap|archcap|testcap|livecap1|livecap2)$`, viper.GetString("mqtt.client_id"))
 	if err != nil {
 		rp.Error = err
 		rp.Message = "Internal error"
@@ -205,7 +205,7 @@ func startExecMqttByID(p string, id string) {
 		var ID string
 		u, _ := json.Marshal(cs)
 		log.Debugf("[startExecMqttByID] Got state: %s", u)
-		if viper.GetString("mqtt.client_id") == "mltcap" || viper.GetString("mqtt.client_id") == "maincap" || viper.GetString("mqtt.client_id") == "archcap" || viper.GetString("mqtt.client_id") == "testmaincap" || viper.GetString("mqtt.client_id") == "livecap1" || viper.GetString("mqtt.client_id") == "livecap2" {
+		if viper.GetString("mqtt.client_id") == "mltcap" || viper.GetString("mqtt.client_id") == "maincap" || viper.GetString("mqtt.client_id") == "archcap" || viper.GetString("mqtt.client_id") == "testcap" || viper.GetString("mqtt.client_id") == "livecap1" || viper.GetString("mqtt.client_id") == "livecap2" {
 			ID = cs.CaptureID
 		}
 		if viper.GetString("mqtt.client_id") == "mltbackup" || viper.GetString("mqtt.client_id") == "backupcap" {
