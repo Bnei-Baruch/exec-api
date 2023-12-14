@@ -153,7 +153,7 @@ func LineFlow(rp *MqttJson, c mqtt.Client) {
 		Line:      cs.Line,
 	}
 
-	err := cw.PutWFDB(rp.Action, ep)
+	err := cw.PostWFDB(rp.Action, ep, "line")
 	if err != nil {
 		log.Errorf("[LineFlow]: Post to WFDB error: %s", err)
 		rp.Error = err
