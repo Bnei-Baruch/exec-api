@@ -277,6 +277,28 @@ func (w *WfdbCapture) PostWFDB(action string, ep string, key string) error {
 	return nil
 }
 
+func (w *WfdbCapture) UpdateWFDB(ep string, value string) error {
+	log.Debugf("[UpdateWFDB] action: update | value: %s", value)
+	req, err := http.NewRequest("POST", viper.GetString("workflow.wfdb_url")+ep+w.CaptureID+"/"+value, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		err = fmt.Errorf("bad status code: %s", strconv.Itoa(res.StatusCode))
+		return err
+	}
+
+	return nil
+}
+
 func (w *CaptureFlow) PutFlow() error {
 	u, _ := json.Marshal(w)
 	log.Debugf("[PutFlow] json: %s", u)

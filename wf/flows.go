@@ -241,17 +241,27 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 		if cw.Line.ContentType == "LESSON_PART" {
 			cm.Part = strconv.Itoa(cw.Line.Part)
 			cm.LessonID = cw.Line.LessonID
+			err = cw.PostWFDB(rp.Action, ep, "line")
+			if err != nil {
+				log.Errorf("[StopFlow]: Post to WFDB error: %s", err)
+				return
+			}
 		}
 	}
 
 	//Archive Source Capture
 	if src == "archcap" {
+		ep = "/capture/"
 		cw.CapSrc = "archcap"
 		if cw.Line.ContentType == "LESSON_PART" {
 			cm.Part = strconv.Itoa(cw.Line.Part)
 			cm.LessonID = cw.Line.LessonID
+			err = cw.PostWFDB(rp.Action, ep, "line")
+			if err != nil {
+				log.Errorf("[StopFlow]: Post to WFDB error: %s", err)
+				return
+			}
 		}
-		ep = "/capture/"
 	}
 
 	//Backup Multi Capture
@@ -264,15 +274,23 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 			cw.StopName = StopName
 			cm.Part = "full"
 			cm.LessonID = cw.Line.LessonID
+			err = cw.PostWFDB(rp.Action, ep, "line")
+			if err != nil {
+				log.Errorf("[StopFlow]: Post to WFDB error: %s", err)
+				return
+			}
 		}
 	}
 
-	err = cw.PutWFDB(rp.Action, ep)
+	err = cw.UpdateWFDB(ep, "sha1?value="+sha)
 	if err != nil {
-		log.Errorf("[StopFlow]: Post to WFDB error: %s", err)
-		rp.Error = err
-		rp.Message = "WFDB Request Failed"
-		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
+		log.Errorf("[StopFlow]: Update WFDB error: %s", err)
+		return
+	}
+
+	err = cw.UpdateWFDB(ep, "stop_name?value="+sha)
+	if err != nil {
+		log.Errorf("[StopFlow]: Update WFDB error: %s", err)
 		return
 	}
 
