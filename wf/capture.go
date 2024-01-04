@@ -332,7 +332,7 @@ func GetStationID(id string) string {
 	case "maincap":
 		return viper.GetString("workflow.main_cap")
 	case "backupcap":
-		viper.GetString("workflow.backup_cap")
+		return viper.GetString("workflow.backup_cap")
 	case "archcap":
 		return viper.GetString("workflow.arch_cap")
 	}
