@@ -288,7 +288,7 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 		return
 	}
 
-	err = cw.UpdateWFDB(ep, "stop_name?value="+sha)
+	err = cw.UpdateWFDB(ep, "stop_name?value="+StopName)
 	if err != nil {
 		log.Errorf("[StopFlow]: Update WFDB error: %s", err)
 		return
