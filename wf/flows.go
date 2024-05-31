@@ -69,6 +69,15 @@ func SendMessage(topic string, m *MqttJson, c mqtt.Client) {
 	log.Debugf("[SendMessage] Topic: %s | Message: %s", topic, string(message))
 }
 
+func WriteWFDB(ep string, message string, c mqtt.Client) {
+	topic := "wfdb/put/" + ep
+	if token := c.Publish(topic, byte(1), false, message); token.Wait() && token.Error() != nil {
+		log.Errorf("[WriteDB]: Error publish: %s | topic: %s", token.Error(), topic)
+	} else {
+		log.Debugf("[WriteDB] Topic: %s | Message: %s", topic, message)
+	}
+}
+
 func StartFlow(rp *MqttJson, c mqtt.Client) {
 
 	src := viper.GetString("mqtt.client_id")
@@ -113,16 +122,17 @@ func StartFlow(rp *MqttJson, c mqtt.Client) {
 		Wfstatus:  *ws,
 	}
 
-	err = cw.PutWFDB(rp.Action, ep)
-	if err != nil {
-		log.Errorf("[StartFlow]: Post to WFDB error: %s", err)
-		rp.Error = err
-		rp.Message = "WFDB Request Failed"
-		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
-		return
-	}
+	//err = cw.PutWFDB(rp.Action, ep)
+	//if err != nil {
+	//	log.Errorf("[StartFlow]: Post to WFDB error: %s", err)
+	//	rp.Error = err
+	//	rp.Message = "WFDB Request Failed"
+	//	SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
+	//	return
+	//}
 
 	u, _ := json.Marshal(cw)
+	WriteWFDB(ep, string(u), c)
 	CheckJson("start", string(u))
 
 	rp.Message = "Success"
