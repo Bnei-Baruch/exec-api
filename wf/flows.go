@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"io"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
@@ -121,6 +122,9 @@ func StartFlow(rp *MqttJson, c mqtt.Client) {
 		return
 	}
 
+	u, _ := json.Marshal(cw)
+	CheckJson("start", string(u))
+
 	rp.Message = "Success"
 	SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 }
@@ -161,6 +165,9 @@ func LineFlow(rp *MqttJson, c mqtt.Client) {
 		SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
 		return
 	}
+
+	u, _ := json.Marshal(cw)
+	CheckJson("line", string(u))
 
 	rp.Message = "Success"
 	SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
@@ -300,6 +307,9 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 		return
 	}
 
+	u, _ := json.Marshal(cw)
+	CheckJson("stop", string(u))
+
 	FullName := StopName + "_" + rp.ID + ".mp4"
 	err = os.Rename(viper.GetString("workflow.capture_path")+rp.ID+".mp4", viper.GetString("workflow.capture_path")+FullName)
 	if err != nil {
@@ -325,4 +335,19 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 
 	rp.Message = "Success"
 	SendMessage(viper.GetString("mqtt.wf_data_topic")+rp.Action, rp, c)
+}
+
+func CheckJson(endpoint string, p string) {
+
+	cmd := exec.Command("/opt/exec-api/"+endpoint+".sh", p)
+	cmd.Dir = "/opt/exec-api/"
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		log.Errorf("[CheckJson]: error: %s", err)
+		return
+	}
+
+	log.Debugf("[CheckJson] result: %s", string(out))
+
 }
