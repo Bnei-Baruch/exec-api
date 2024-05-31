@@ -70,7 +70,7 @@ func SendMessage(topic string, m *MqttJson, c mqtt.Client) {
 }
 
 func WriteWFDB(ep string, message string, c mqtt.Client) {
-	topic := "wfdb/put/" + ep
+	topic := "wfdb/put" + ep
 	if token := c.Publish(topic, byte(1), false, message); token.Wait() && token.Error() != nil {
 		log.Errorf("[WriteDB]: Error publish: %s | topic: %s", token.Error(), topic)
 	} else {
