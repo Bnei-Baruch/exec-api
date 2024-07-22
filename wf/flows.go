@@ -83,7 +83,7 @@ func StartFlow(rp *MqttJson, c mqtt.Client) {
 	src := viper.GetString("mqtt.client_id")
 	ep := "/ingest/"
 
-	if src == "archcap" {
+	if src == "archcap" || src == "archbackup" {
 		ep = "/capture/"
 	}
 
@@ -144,7 +144,7 @@ func LineFlow(rp *MqttJson, c mqtt.Client) {
 	src := viper.GetString("mqtt.client_id")
 	ep := "/ingest/"
 
-	if src == "archcap" {
+	if src == "archcap" || src == "archbackup" {
 		ep = "/capture/"
 	}
 
@@ -198,7 +198,7 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 	}
 
 	StopName := cs.StopName
-	if src == "archcap" {
+	if src == "archcap" || src == "archbackup" {
 		StopName = strings.Replace(StopName, "_o_", "_s_", 1)
 	}
 
