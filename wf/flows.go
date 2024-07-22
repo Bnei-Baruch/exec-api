@@ -281,6 +281,26 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 		}
 	}
 
+	//Backup Archive Source Capture
+	if src == "archbackup" {
+		ep = "/capture/"
+		cw.CapSrc = "archbackup"
+		if cw.Line.ContentType == "LESSON_PART" {
+			StopName = StopName[:len(StopName)-2] + "full"
+			cw.Line.ContentType = "FULL_LESSON"
+			cw.Line.Part = -1
+			cw.Line.FinalName = StopName
+			cw.StopName = StopName
+			cm.Part = "full"
+			cm.LessonID = cw.Line.LessonID
+			err = cw.PostWFDB(rp.Action, ep, "line")
+			if err != nil {
+				log.Errorf("[StopFlow]: Post to WFDB error: %s", err)
+				return
+			}
+		}
+	}
+
 	//Backup Multi Capture
 	if src == "mltbackup" || src == "backupcap" {
 		if cw.Line.ContentType == "LESSON_PART" {
