@@ -285,7 +285,7 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 	if src == "archbackup" {
 		ep = "/capture/"
 		cw.CapSrc = "archbackup"
-		if cw.Line.ContentType == "LESSON_PART" {
+		if cw.Line.CollectionType == "DAILY_LESSON" {
 			StopName = StopName[:len(StopName)-2] + "full"
 			cw.Line.ContentType = "FULL_LESSON"
 			cw.Line.Part = -1
