@@ -113,6 +113,22 @@ type CaptureFlow struct {
 	Url       string `json:"url"`
 }
 
+var Data []byte
+
+func GetMemState() *CaptureState {
+	var cs *CaptureState
+	err := json.Unmarshal(Data, &cs)
+	if err != nil {
+		log.Errorf("[GetMemState]: Error Unmarshal: %s", err)
+	}
+	u, err := json.Marshal(cs)
+	if err != nil {
+		log.Errorf("[GetMemState]: Error Marshal: %s", err)
+	}
+	log.Debugf("[GetMemState] : %s", u)
+	return cs
+}
+
 func GetState() *CaptureState {
 	var cs *CaptureState
 	s, err := os.ReadFile("state.json")
@@ -130,6 +146,7 @@ func GetState() *CaptureState {
 
 func SetState(c mqtt.Client, m mqtt.Message) {
 	cs := &CaptureState{}
+	Data = m.Payload()
 	err := json.Unmarshal(m.Payload(), &cs)
 	if err != nil {
 		log.Errorf("[GetState]: Error Unmarshal state: %s", err)
@@ -335,6 +352,8 @@ func GetStationID(id string) string {
 		return viper.GetString("workflow.backup_cap")
 	case "archcap":
 		return viper.GetString("workflow.arch_cap")
+	case "archbackup":
+		return viper.GetString("workflow.arch_backup")
 	}
 
 	return "127.0.0.1"

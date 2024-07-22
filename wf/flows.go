@@ -87,7 +87,7 @@ func StartFlow(rp *MqttJson, c mqtt.Client) {
 		ep = "/capture/"
 	}
 
-	cs := GetState()
+	cs := GetMemState()
 	if cs.CaptureID == "" {
 		rp.Error = fmt.Errorf("error")
 		log.Errorf("[StartFlow]: CaptureID is empty")
