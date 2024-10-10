@@ -492,7 +492,12 @@ func SendProgress(on bool) {
 						ffjson[args[0]] = args[1]
 					}
 
-					rp.Message = "On"
+					if ffjson["progress"] == "continue" {
+						rp.Message = "On"
+					} else {
+						rp.Message = "Off"
+					}
+
 					rp.Data = ffjson
 				}
 				SendMessage(ExecDataTopic+ClientID, rp)
