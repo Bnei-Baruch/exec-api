@@ -1,9 +1,12 @@
 package api
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/viper"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -21,6 +24,15 @@ type Service struct {
 	Name        string
 	Description string
 	Args        []string
+}
+
+type Upload struct {
+	Filename  string `json:"file_name"`
+	Extension string `json:"extension,omitempty"`
+	Sha1      string `json:"sha1"`
+	Size      int64  `json:"size"`
+	Mimetype  string `json:"type"`
+	Url       string `json:"url"`
 }
 
 func getJson(ep string) (*Config, error) {
@@ -91,4 +103,28 @@ func removeProgress(file string) {
 			fmt.Printf("%s\n", e)
 		}
 	}
+}
+
+func (u *Upload) UploadProps(filepath string, ep string) error {
+
+	f, err := os.Open(filepath)
+	if err != nil {
+		return err
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	u.Size = fi.Size()
+
+	h := sha1.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return err
+	}
+
+	u.Sha1 = hex.EncodeToString(h.Sum(nil))
+
+	return nil
 }

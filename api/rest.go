@@ -5,9 +5,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-cmd/cmd"
 	"github.com/spf13/viper"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -472,4 +475,109 @@ func startRemux(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"result": "success"})
+}
+
+func getUploadPath(ep string) string {
+
+	switch ep {
+	case "insert":
+		return "/backup/tmp/insert/"
+	case "jobs":
+		return "/backup/jobs/"
+	case "products":
+		return "/backup/files/upload/"
+	case "aricha":
+		return "/backup/aricha/"
+	case "aklada":
+		return "/backup/tmp/akladot/"
+	case "gibuy":
+		return "/backup/tmp/gibuy/"
+	case "carbon":
+		return "/backup/tmp/carbon/"
+	case "dgima":
+		return "/backup/dgima/"
+	case "proxy":
+		return "/backup/tmp/proxy/"
+	case "youtube":
+		return "/backup/tmp/youtube/"
+	case "coder":
+		return "/backup/tmp/coder/"
+	case "muxer":
+		return "/backup/tmp/muxer/"
+	default:
+		return "/backup/tmp/upload/"
+	}
+}
+
+func HandleUploadGin(c *gin.Context) {
+	endpoint := c.Param("ep")
+	uploadPath := getUploadPath(endpoint)
+
+	if _, err := os.Stat(uploadPath); os.IsNotExist(err) {
+		os.MkdirAll(uploadPath, 0755)
+	}
+
+	var (
+		n     int
+		err   error
+		mr    *multipart.Reader
+		part  *multipart.Part
+		chunk = make([]byte, 10485760)
+		u     Upload
+	)
+
+	if mr, err = c.Request.MultipartReader(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	for {
+		var tempfile *os.File
+		var filesize int
+		var uploaded bool
+
+		if part, err = mr.NextPart(); err != nil {
+			if err != io.EOF {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				if tempfile != nil {
+					os.Remove(tempfile.Name())
+				}
+			} else {
+				c.JSON(http.StatusOK, u)
+			}
+			return
+		}
+
+		u.Filename = part.FileName()
+		u.Mimetype = part.Header.Get("Content-Type")
+		u.Url = filepath.Join(uploadPath, u.Filename)
+
+		tempfile, err = os.CreateTemp(uploadPath, part.FileName()+".*")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer tempfile.Close()
+
+		for !uploaded {
+			if n, err = part.Read(chunk); err != nil {
+				if err != io.EOF {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					os.Remove(tempfile.Name())
+					return
+				}
+				uploaded = true
+			}
+
+			if n, err = tempfile.Write(chunk[:n]); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				os.Remove(tempfile.Name())
+				return
+			}
+			filesize += n
+		}
+
+		os.Rename(tempfile.Name(), u.Url)
+		u.UploadProps(u.Url, endpoint) // как в оригинале
+	}
 }
