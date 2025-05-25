@@ -5,15 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type MqttJson struct {
@@ -217,11 +217,8 @@ func StopFlow(rp *MqttJson, c mqtt.Client) {
 	size := stat.Size()
 	log.Debugf("[StopFlow] File size: %s", size)
 
-	time := stat.Sys().(*syscall.Stat_t)
-	//FIXME: WTF?
-	ctime := time.Ctimespec.Nsec //OSX
-	//ctime := time.Ctim.Nsec //Linux
-	log.Debugf("[StopFlow] Creation time file: %s", ctime)
+	ctime := getCtime(stat)
+	log.Debugf("[StopFlow] Creation time file: %d", ctime)
 
 	h := sha1.New()
 	if _, err = io.Copy(h, file); err != nil {
