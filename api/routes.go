@@ -20,4 +20,10 @@ func SetupRoutes(router *gin.Engine) {
 	router.GET("/get/:file", getFile)
 	router.GET("/files/list", getFilesList)
 	router.POST("/upload/:ep", HandleUploadGin)
+
+	// Configuration management routes
+	router.GET("/config", getConfig)
+	router.PUT("/config/service/:id/args", updateServiceArgs)
+	router.POST("/config/service", addService)
+	router.DELETE("/config/service/:id", deleteService)
 }

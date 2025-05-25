@@ -5,11 +5,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -103,6 +104,41 @@ func removeProgress(file string) {
 			fmt.Printf("%s\n", e)
 		}
 	}
+}
+
+func saveConf(config *Config) error {
+	file, err := os.Create("conf.json")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	err = encoder.Encode(config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func findServiceByID(config *Config, id string) *Service {
+	for i := range config.Services {
+		if config.Services[i].ID == id {
+			return &config.Services[i]
+		}
+	}
+	return nil
+}
+
+func removeServiceByID(config *Config, id string) bool {
+	for i, service := range config.Services {
+		if service.ID == id {
+			config.Services = append(config.Services[:i], config.Services[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 func (u *Upload) UploadProps(filepath string, ep string) error {

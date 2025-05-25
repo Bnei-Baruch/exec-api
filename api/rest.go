@@ -1,10 +1,6 @@
 package api
 
 import (
-	"github.com/Bnei-Baruch/exec-api/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/go-cmd/cmd"
-	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -13,6 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Bnei-Baruch/exec-api/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/go-cmd/cmd"
+	"github.com/spf13/viper"
 )
 
 func getFilesList(c *gin.Context) {
@@ -578,6 +579,111 @@ func HandleUploadGin(c *gin.Context) {
 		}
 
 		os.Rename(tempfile.Name(), u.Url)
-		u.UploadProps(u.Url, endpoint) // как в оригинале
+		u.UploadProps(u.Url, endpoint) // as in original
 	}
+}
+
+// Configuration management handlers
+
+func getConfig(c *gin.Context) {
+	config, err := getConf()
+	if err != nil {
+		NewInternalError(err).Abort(c)
+		return
+	}
+	c.JSON(http.StatusOK, config)
+}
+
+func updateServiceArgs(c *gin.Context) {
+	id := c.Params.ByName("id")
+
+	var requestBody struct {
+		Args []string `json:"args" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		NewBadRequestError(err).Abort(c)
+		return
+	}
+
+	config, err := getConf()
+	if err != nil {
+		NewInternalError(err).Abort(c)
+		return
+	}
+
+	service := findServiceByID(config, id)
+	if service == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Service not found"})
+		return
+	}
+
+	service.Args = requestBody.Args
+
+	err = saveConf(config)
+	if err != nil {
+		NewInternalError(err).Abort(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"result": "success", "service": service})
+}
+
+func addService(c *gin.Context) {
+	var newService Service
+
+	if err := c.ShouldBindJSON(&newService); err != nil {
+		NewBadRequestError(err).Abort(c)
+		return
+	}
+
+	if newService.ID == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Service ID is required"})
+		return
+	}
+
+	config, err := getConf()
+	if err != nil {
+		NewInternalError(err).Abort(c)
+		return
+	}
+
+	// Check if service with this ID already exists
+	if findServiceByID(config, newService.ID) != nil {
+		c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Service with this ID already exists"})
+		return
+	}
+
+	config.Services = append(config.Services, newService)
+
+	err = saveConf(config)
+	if err != nil {
+		NewInternalError(err).Abort(c)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"result": "success", "service": newService})
+}
+
+func deleteService(c *gin.Context) {
+	id := c.Params.ByName("id")
+
+	config, err := getConf()
+	if err != nil {
+		NewInternalError(err).Abort(c)
+		return
+	}
+
+	if !removeServiceByID(config, id) {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Service not found"})
+		return
+	}
+
+	err = saveConf(config)
+	if err != nil {
+		NewInternalError(err).Abort(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"result": "success", "message": "Service deleted"})
 }
