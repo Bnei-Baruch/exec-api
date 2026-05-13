@@ -16,6 +16,9 @@ func SetupRoutes(router *gin.Engine) {
 	router.GET("/:ep/alive/:id", isAlive)
 	router.GET("/:ep/remux/:id", startRemux)
 
+	// Generic command runner (whitelisted via conf.json allowed_commands).
+	router.POST("/:ep/cmd/:id", runCmdHTTP)
+
 	router.GET("/test/:file", getData)
 	router.GET("/get/:file", getFile)
 	router.GET("/files/list", getFilesList)

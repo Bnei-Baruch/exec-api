@@ -90,6 +90,15 @@ func SubMQTT(c mqtt.Client) {
 		log.Infof("[SubMQTT] Subscribed to: %s", WorkflowServiceTopic)
 	}
 
+	// Generic command runner (whitelisted commands). Subscribed last so its
+	// failure does not block earlier subscriptions.
+	ExecCmdTopic := execCmdSubscribeTopic()
+	if token := MQTT.Subscribe(ExecCmdTopic, byte(0), CmdMessage); token.Wait() && token.Error() != nil {
+		log.Errorf("[SubMQTT] Subscribe error: %s", token.Error())
+	} else {
+		log.Infof("[SubMQTT] Subscribed to: %s", ExecCmdTopic)
+	}
+
 	WorkflowStateTopic := viper.GetString("mqtt.wf_state_topic")
 	if token := MQTT.Subscribe(WorkflowStateTopic, byte(1), wf.SetState); token.Wait() && token.Error() != nil {
 		log.Errorf("[SubMQTT] Subscribe error: %s", token.Error())
