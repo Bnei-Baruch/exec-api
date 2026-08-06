@@ -161,10 +161,10 @@ func SendRespond(id string, m *MqttPayload) {
 		log.Errorf("Message parsing: %s", err)
 	}
 
-	text := fmt.Sprintf(string(message))
+	text := string(message)
 	log.Debugf("[SendRespond] topic: %s |  message: %s", topic, string(message))
 	if token := MQTT.Publish(topic, byte(1), false, text); token.Wait() && token.Error() != nil {
-		log.Errorf("Send Respond: %s", err)
+		log.Errorf("Send Respond: %s", token.Error())
 	}
 }
 
