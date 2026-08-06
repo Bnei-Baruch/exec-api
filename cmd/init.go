@@ -10,8 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"net/http"
-	"os"
+	"time"
 )
 
 func Init() {
@@ -21,11 +22,35 @@ func Init() {
 	} else {
 		log.SetLevel(log.InfoLevel)
 	}
-	file, err := os.OpenFile(viper.GetString("server.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		log.SetOutput(file)
+	// Rotating log: rotate daily at 23:59:59 like the pre-2024 builds did, and
+	// keep a month of history. HEAD dropped rotation entirely, leaving an
+	// append-only file that grows unbounded.
+	if logFile := viper.GetString("server.log"); logFile != "" {
+		lj := &lumberjack.Logger{
+			Filename:   logFile,
+			MaxSize:    1000, // MB — size-based rotation as a backstop
+			MaxBackups: 0,    // no count limit; MaxAge governs retention
+			MaxAge:     30,   // delete backups older than a month
+			LocalTime:  true,
+		}
+		log.SetOutput(lj)
+
+		// Daily rotation, replacing the gocron job the old builds used.
+		go func() {
+			for {
+				now := time.Now()
+				next := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+				if !next.After(now) {
+					next = next.AddDate(0, 0, 1)
+				}
+				time.Sleep(time.Until(next))
+				if err := lj.Rotate(); err != nil {
+					log.Errorf("log rotate failed: %s", err)
+				}
+			}
+		}()
 	} else {
-		log.Errorf("Failed to log to file, using default stderr")
+		log.Errorf("server.log not configured, using default stderr")
 	}
 	log.Infof(" - Starting EXEC API server version %s - ", version.Version)
 
@@ -54,6 +79,9 @@ func Init() {
 	if err := api.InitMQTT(); err != nil {
 		log.Errorf("MQTT Init error: %s", err)
 	}
+
+	// Restart managed services that die unexpectedly
+	api.StartWatchdog()
 
 	// Setup http
 	gin.SetMode(viper.GetString("server.mode"))

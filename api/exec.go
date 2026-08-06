@@ -18,6 +18,47 @@ import (
 
 var Cmd map[string]*cmd.Cmd
 
+// ManuallyStopped tracks services stopped via MQTT "stop" command.
+// Watchdog skips these — only restarts processes that died unexpectedly (crash).
+// Cleared when a "start" command is received for the same service.
+var ManuallyStopped = make(map[string]bool)
+
+// StartWatchdog runs a background goroutine that restarts any service in the
+// config that has exited unexpectedly (PID gone and not manually stopped).
+func StartWatchdog() {
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			c, err := getConf()
+			if err != nil {
+				c, err = getJson(viper.GetString("mqtt.client_id"))
+				if err != nil {
+					log.Warnf("[Watchdog] config error: %s", err)
+					continue
+				}
+			}
+			for _, svc := range c.Services {
+				if ManuallyStopped[svc.ID] {
+					continue
+				}
+				// Never launched by this process — treat as stopped by default.
+				// Only services we actually started can have crashed.
+				if Cmd[svc.ID] == nil {
+					continue
+				}
+				status := Cmd[svc.ID].Status()
+				alive, err := utils.PidExists(status.PID)
+				if err == nil && alive {
+					continue
+				}
+				log.Infof("[Watchdog] %s is not running, restarting", svc.ID)
+				go startExecMqttByID("start", svc.ID)
+			}
+		}
+	}()
+}
+
 func isAliveMqtt(p string, id string) {
 
 	rp := &MqttPayload{Action: p}
@@ -140,6 +181,8 @@ func stopExecMqtt(p string) {
 
 func startExecMqttByID(p string, id string) {
 
+	delete(ManuallyStopped, id)
+
 	rp := &MqttPayload{Action: p}
 	c, err := getConf()
 	if err != nil {
@@ -248,11 +291,20 @@ func startExecMqttByID(p string, id string) {
 	Cmd[id].Start()
 	status := Cmd[id].Status()
 	if status.Exit == 1 {
+		log.Errorf("[Start] %s failed to run", id)
 		rp.Error = fmt.Errorf("error")
 		rp.Message = "Run Exec Failed"
 		SendRespond(id, rp)
 		return
 	}
+
+	// go-cmd fills in the PID asynchronously, so it is not set the instant
+	// Start() returns — poll briefly so the log records a usable PID.
+	for i := 0; i < 20 && status.PID == 0; i++ {
+		time.Sleep(50 * time.Millisecond)
+		status = Cmd[id].Status()
+	}
+	log.Infof("[Start] %s started (pid %d)", id, status.PID)
 
 	rp.Message = "Success"
 	SendRespond(id, rp)
@@ -270,8 +322,11 @@ func stopExecMqttByID(p string, id string) {
 			syscall.Kill(pid, syscall.SIGTERM)
 			cs.IsRec = false
 			removeProgress("stat_" + id + ".log")
+			ManuallyStopped[id] = true
+			log.Infof("[Stop] %s stopped by request (pid %d, untracked)", id, pid)
 			rp.Message = "Success"
 		} else {
+			log.Warnf("[Stop] %s requested but nothing to stop", id)
 			rp.Error = fmt.Errorf("error")
 			rp.Message = "Nothing to stop"
 		}
@@ -280,8 +335,11 @@ func stopExecMqttByID(p string, id string) {
 		return
 	}
 
+	stoppedPID := Cmd[id].Status().PID
+
 	err := Cmd[id].Stop()
 	if err != nil {
+		log.Errorf("[Stop] %s stop failed: %s", id, err)
 		rp.Error = err
 		rp.Message = "Cmd stop failed"
 		SendRespond(id, rp)
@@ -289,6 +347,9 @@ func stopExecMqttByID(p string, id string) {
 	}
 
 	removeProgress("stat_" + id + ".log")
+
+	ManuallyStopped[id] = true
+	log.Infof("[Stop] %s stopped by request (pid %d) — watchdog will not restart it", id, stoppedPID)
 
 	rp.Message = "Success"
 	SendRespond(id, rp)

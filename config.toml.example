@@ -1,0 +1,62 @@
+# exec-api configuration.
+#
+# Copy to config.toml in the working directory (the process reads "config" from
+# ".", so /opt/exec-api/config.toml for a normal install) and fill in the values
+# for this machine. Without this file exec-api exits at startup.
+#
+# IMPORTANT: environment variables OVERRIDE this file. Viper is configured with
+# AutomaticEnv and a "." -> "_" key replacer, so mqtt.url is overridden by
+# MQTT_URL, server.addr by SERVER_ADDR, and so on. If a value here appears to be
+# ignored, check .env for a conflicting variable. A common trap is MQTT_URL set
+# without the ssl:// scheme, which silently breaks the broker connection.
+
+[server]
+addr = ":8080"
+mode = "release"            # "release" or "debug"
+log = "/opt/exec-api/logs/exec-api.log"
+
+# Base URL for the service config, fetched as cfg_url + mqtt.client_id.
+# Only used when there is no local conf.json in the working directory.
+cfg_url = "https://shidur.kab.sh/db/streamer/encoders/"
+
+[mqtt]
+debug = "false"             # "true" enables debug logging (very verbose)
+
+# The scheme is required: ssl:// for TLS (9001), tcp:// for plaintext.
+url = "ssl://mqtt.bbdomain.org:9001"
+
+user = "<machine-id>_mqtt_client@bbdomain.one"
+password = "<mqtt jwt>"
+
+# Identifies this machine. Must be unique across the broker: two clients
+# connecting with the same id will repeatedly kick each other off, appearing as
+# an endless "Lost connection: EOF" reconnect loop.
+# Also used to build the config URL (cfg_url + client_id).
+client_id = "<machine-id>"
+
+status_topic = "exec/status/<machine-id>/"
+exec_service_topic = "exec/service/<machine-id>/#"
+exec_state_topic = "exec/state/<machine-id>"
+exec_data_topic = "exec/service/data/"
+wf_service_topic = "workflow/service/capture/<machine-id>"
+wf_state_topic = "workflow/state/capture/"
+wf_data_topic = "workflow/service/data/"
+
+[authentication]
+# When enabled, OIDC discovery runs against the issuer at startup; if it fails
+# the server does not start. Disable on machines that only use MQTT control.
+enable = false
+issuer = "https://accounts.kab.info/auth/realms/main"
+
+# Capture/ingest machines only — omit on streaming and translation machines.
+#[workflow]
+#main_cap = ""
+#backup_cap = ""
+#arch_cap = ""
+#arch_backup = ""
+#mlt_main = ""
+#mlt_backup = ""
+#capture_path = ""
+#mdb_url = ""
+#wfdb_url = ""
+#wfapi_url = ""
